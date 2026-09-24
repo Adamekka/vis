@@ -1,0 +1,390 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="game-library-schema" name="Game library">
+    <mxGraphModel dx="2020" dy="1050" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2020" pageHeight="1050" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="Game library manager" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=32;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="35" width="1200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="PostgreSQL schema · 7 tables · players own games, games have achievements and multiple genres" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=17;fontColor=#637084;" vertex="1" parent="1">
+          <mxGeometry x="60" y="90" width="1800" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="player" value="player" style="swimlane;html=0;horizontal=1;startSize=42;rounded=0;collapsible=0;fillColor=#E4EFFB;swimlaneFillColor=#FFFFFF;strokeColor=#8BA9C8;strokeWidth=1.5;fontFamily=Helvetica;fontSize=19;fontStyle=1;fontColor=#20334D;align=left;spacingLeft=16;" vertex="1" parent="1">
+          <mxGeometry x="60" y="180" width="330" height="144" as="geometry" />
+        </mxCell>
+        <mxCell id="player-id-key" value="PK" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="player">
+          <mxGeometry x="12" y="48" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player-id" value="id" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="player">
+          <mxGeometry x="97" y="48" width="105" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player-id-type" value="BIGINT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="player">
+          <mxGeometry x="200" y="48" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player-username-key" value="UQ" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="player">
+          <mxGeometry x="12" y="78" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player-username" value="username" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="player">
+          <mxGeometry x="97" y="78" width="105" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player-username-type" value="TEXT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="player">
+          <mxGeometry x="200" y="78" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player-email-key" value="UQ" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="player">
+          <mxGeometry x="12" y="108" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player-email" value="email" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="player">
+          <mxGeometry x="97" y="108" width="105" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player-email-type" value="TEXT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="player">
+          <mxGeometry x="200" y="108" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game" value="player_game" style="swimlane;html=0;horizontal=1;startSize=42;rounded=0;collapsible=0;fillColor=#EDE8FA;swimlaneFillColor=#FFFFFF;strokeColor=#A79AC5;strokeWidth=1.5;fontFamily=Helvetica;fontSize=19;fontStyle=1;fontColor=#20334D;align=left;spacingLeft=16;" vertex="1" parent="1">
+          <mxGeometry x="530" y="180" width="390" height="318" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-player_id-key" value="PK, FK" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="player_game">
+          <mxGeometry x="12" y="48" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-player_id" value="player_id" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="player_game">
+          <mxGeometry x="97" y="48" width="165" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-player_id-type" value="BIGINT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="player_game">
+          <mxGeometry x="260" y="48" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-game_id-key" value="PK, FK" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="player_game">
+          <mxGeometry x="12" y="78" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-game_id" value="game_id" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="player_game">
+          <mxGeometry x="97" y="78" width="165" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-game_id-type" value="BIGINT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="player_game">
+          <mxGeometry x="260" y="78" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-added_at-key" value="" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="player_game">
+          <mxGeometry x="12" y="108" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-added_at" value="added_at" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="player_game">
+          <mxGeometry x="97" y="108" width="165" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-added_at-type" value="TIMESTAMPTZ" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="player_game">
+          <mxGeometry x="260" y="108" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-playtime_minutes-key" value="" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="player_game">
+          <mxGeometry x="12" y="138" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-playtime_minutes" value="playtime_minutes" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="player_game">
+          <mxGeometry x="97" y="138" width="165" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-playtime_minutes-type" value="INTEGER" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="player_game">
+          <mxGeometry x="260" y="138" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-status-key" value="" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="player_game">
+          <mxGeometry x="12" y="168" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-status" value="status" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="player_game">
+          <mxGeometry x="97" y="168" width="165" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-status-type" value="TEXT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="player_game">
+          <mxGeometry x="260" y="168" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-note-0" value="playtime_minutes ≥ 0 · default 0" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#576477;" vertex="1" parent="player_game">
+          <mxGeometry x="14" y="205" width="362" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-note-1" value="status default: 'not_started'" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#576477;" vertex="1" parent="player_game">
+          <mxGeometry x="14" y="230" width="362" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-note-2" value="not_started / playing / completed / abandoned" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#576477;" vertex="1" parent="player_game">
+          <mxGeometry x="14" y="255" width="362" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-note-3" value="added_at default: CURRENT_TIMESTAMP" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#576477;" vertex="1" parent="player_game">
+          <mxGeometry x="14" y="280" width="362" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="game" value="game" style="swimlane;html=0;horizontal=1;startSize=42;rounded=0;collapsible=0;fillColor=#E4EFFB;swimlaneFillColor=#FFFFFF;strokeColor=#8BA9C8;strokeWidth=1.5;fontFamily=Helvetica;fontSize=19;fontStyle=1;fontColor=#20334D;align=left;spacingLeft=16;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="180" width="390" height="144" as="geometry" />
+        </mxCell>
+        <mxCell id="game-id-key" value="PK" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="game">
+          <mxGeometry x="12" y="48" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="game-id" value="id" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="game">
+          <mxGeometry x="97" y="48" width="165" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="game-id-type" value="BIGINT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="game">
+          <mxGeometry x="260" y="48" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="game-title-key" value="" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="game">
+          <mxGeometry x="12" y="78" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="game-title" value="title" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="game">
+          <mxGeometry x="97" y="78" width="165" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="game-title-type" value="TEXT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="game">
+          <mxGeometry x="260" y="78" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="game-release_date-key" value="" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="game">
+          <mxGeometry x="12" y="108" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="game-release_date" value="release_date" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="game">
+          <mxGeometry x="97" y="108" width="165" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="game-release_date-type" value="DATE" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="game">
+          <mxGeometry x="260" y="108" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="game_genre" value="game_genre" style="swimlane;html=0;horizontal=1;startSize=42;rounded=0;collapsible=0;fillColor=#EDE8FA;swimlaneFillColor=#FFFFFF;strokeColor=#A79AC5;strokeWidth=1.5;fontFamily=Helvetica;fontSize=19;fontStyle=1;fontColor=#20334D;align=left;spacingLeft=16;" vertex="1" parent="1">
+          <mxGeometry x="1590" y="180" width="360" height="153" as="geometry" />
+        </mxCell>
+        <mxCell id="game_genre-game_id-key" value="PK, FK" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="game_genre">
+          <mxGeometry x="12" y="48" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="game_genre-game_id" value="game_id" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="game_genre">
+          <mxGeometry x="97" y="48" width="135" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="game_genre-game_id-type" value="BIGINT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="game_genre">
+          <mxGeometry x="230" y="48" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="game_genre-genre_id-key" value="PK, FK" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="game_genre">
+          <mxGeometry x="12" y="78" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="game_genre-genre_id" value="genre_id" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="game_genre">
+          <mxGeometry x="97" y="78" width="135" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="game_genre-genre_id-type" value="BIGINT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="game_genre">
+          <mxGeometry x="230" y="78" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="game_genre-note-0" value="Composite PK (game_id, genre_id)" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#576477;" vertex="1" parent="game_genre">
+          <mxGeometry x="14" y="115" width="332" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="genre" value="genre" style="swimlane;html=0;horizontal=1;startSize=42;rounded=0;collapsible=0;fillColor=#E4EFFB;swimlaneFillColor=#FFFFFF;strokeColor=#8BA9C8;strokeWidth=1.5;fontFamily=Helvetica;fontSize=19;fontStyle=1;fontColor=#20334D;align=left;spacingLeft=16;" vertex="1" parent="1">
+          <mxGeometry x="1590" y="650" width="360" height="114" as="geometry" />
+        </mxCell>
+        <mxCell id="genre-id-key" value="PK" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="genre">
+          <mxGeometry x="12" y="48" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="genre-id" value="id" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="genre">
+          <mxGeometry x="97" y="48" width="135" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="genre-id-type" value="BIGINT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="genre">
+          <mxGeometry x="230" y="48" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="genre-name-key" value="UQ" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="genre">
+          <mxGeometry x="12" y="78" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="genre-name" value="name" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="genre">
+          <mxGeometry x="97" y="78" width="135" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="genre-name-type" value="TEXT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="genre">
+          <mxGeometry x="230" y="78" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement" value="achievement" style="swimlane;html=0;horizontal=1;startSize=42;rounded=0;collapsible=0;fillColor=#E4EFFB;swimlaneFillColor=#FFFFFF;strokeColor=#8BA9C8;strokeWidth=1.5;fontFamily=Helvetica;fontSize=19;fontStyle=1;fontColor=#20334D;align=left;spacingLeft=16;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="650" width="390" height="293" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-id-key" value="PK" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="achievement">
+          <mxGeometry x="12" y="48" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-id" value="id" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="achievement">
+          <mxGeometry x="97" y="48" width="165" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-id-type" value="BIGINT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="achievement">
+          <mxGeometry x="260" y="48" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-game_id-key" value="FK" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="achievement">
+          <mxGeometry x="12" y="78" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-game_id" value="game_id" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="achievement">
+          <mxGeometry x="97" y="78" width="165" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-game_id-type" value="BIGINT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="achievement">
+          <mxGeometry x="260" y="78" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-name-key" value="" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="achievement">
+          <mxGeometry x="12" y="108" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-name" value="name" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="achievement">
+          <mxGeometry x="97" y="108" width="165" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-name-type" value="TEXT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="achievement">
+          <mxGeometry x="260" y="108" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-description-key" value="" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="achievement">
+          <mxGeometry x="12" y="138" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-description" value="description" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="achievement">
+          <mxGeometry x="97" y="138" width="165" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-description-type" value="TEXT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="achievement">
+          <mxGeometry x="260" y="138" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-points-key" value="" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="achievement">
+          <mxGeometry x="12" y="168" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-points" value="points" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="achievement">
+          <mxGeometry x="97" y="168" width="165" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-points-type" value="INTEGER" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="achievement">
+          <mxGeometry x="260" y="168" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-note-0" value="UQ (game_id, name)" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#576477;" vertex="1" parent="achievement">
+          <mxGeometry x="14" y="205" width="362" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-note-1" value="UQ (id, game_id)" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#576477;" vertex="1" parent="achievement">
+          <mxGeometry x="14" y="230" width="362" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-note-2" value="points ≥ 0" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#576477;" vertex="1" parent="achievement">
+          <mxGeometry x="14" y="255" width="362" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="player_achievement" value="player_achievement" style="swimlane;html=0;horizontal=1;startSize=42;rounded=0;collapsible=0;fillColor=#EDE8FA;swimlaneFillColor=#FFFFFF;strokeColor=#A79AC5;strokeWidth=1.5;fontFamily=Helvetica;fontSize=19;fontStyle=1;fontColor=#20334D;align=left;spacingLeft=16;" vertex="1" parent="1">
+          <mxGeometry x="530" y="650" width="390" height="263" as="geometry" />
+        </mxCell>
+        <mxCell id="player_achievement-player_id-key" value="PK, FK1" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="player_achievement">
+          <mxGeometry x="12" y="48" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_achievement-player_id" value="player_id" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="player_achievement">
+          <mxGeometry x="97" y="48" width="165" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_achievement-player_id-type" value="BIGINT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="player_achievement">
+          <mxGeometry x="260" y="48" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_achievement-achievement_id-key" value="PK, FK2" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="player_achievement">
+          <mxGeometry x="12" y="78" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_achievement-achievement_id" value="achievement_id" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="player_achievement">
+          <mxGeometry x="97" y="78" width="165" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_achievement-achievement_id-type" value="BIGINT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="player_achievement">
+          <mxGeometry x="260" y="78" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_achievement-game_id-key" value="FK1, FK2" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="player_achievement">
+          <mxGeometry x="12" y="108" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_achievement-game_id" value="game_id" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="player_achievement">
+          <mxGeometry x="97" y="108" width="165" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_achievement-game_id-type" value="BIGINT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="player_achievement">
+          <mxGeometry x="260" y="108" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_achievement-unlocked_at-key" value="" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontStyle=1;fontColor=#6A4C93;" vertex="1" parent="player_achievement">
+          <mxGeometry x="12" y="138" width="85" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_achievement-unlocked_at" value="unlocked_at" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;" vertex="1" parent="player_achievement">
+          <mxGeometry x="97" y="138" width="165" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_achievement-unlocked_at-type" value="TIMESTAMPTZ" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#637084;align=right;" vertex="1" parent="player_achievement">
+          <mxGeometry x="260" y="138" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="player_achievement-note-0" value="FK1 (player_id, game_id) → player_game" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#576477;" vertex="1" parent="player_achievement">
+          <mxGeometry x="14" y="175" width="362" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="player_achievement-note-1" value="FK2 (achievement_id, game_id) → achievement" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#576477;" vertex="1" parent="player_achievement">
+          <mxGeometry x="14" y="200" width="362" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="player_achievement-note-2" value="unlocked_at default: CURRENT_TIMESTAMP" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=12;fontColor=#576477;" vertex="1" parent="player_achievement">
+          <mxGeometry x="14" y="225" width="362" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="player-to-player_game" value="" edge="1" parent="1" source="player" target="player_game" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;strokeColor=#637084;strokeWidth=1.7;startArrow=ERone;startFill=0;startSize=12;endArrow=ERzeroToMany;endFill=0;endSize=18;fontFamily=Helvetica;fontSize=13;fontColor=#576477;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.42;exitDx=0;exitDy=0;entryX=0;entryY=0.19;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="player-to-player_game-one" value="1" vertex="1" connectable="0" parent="player-to-player_game" style="edgeLabel;html=0;align=center;verticalAlign=middle;resizable=0;fontFamily=Helvetica;fontSize=13;fontColor=#253449;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry x="-0.70" y="-17" width="30" height="20" relative="1" as="geometry">
+            <mxPoint x="-15" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="player-to-player_game-many" value="0..*" vertex="1" connectable="0" parent="player-to-player_game" style="edgeLabel;html=0;align=center;verticalAlign=middle;resizable=0;fontFamily=Helvetica;fontSize=13;fontColor=#253449;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry x="0.70" y="-17" width="30" height="20" relative="1" as="geometry">
+            <mxPoint x="-15" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="game-to-player_game" value="" edge="1" parent="1" source="game" target="player_game" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;strokeColor=#637084;strokeWidth=1.7;startArrow=ERone;startFill=0;startSize=12;endArrow=ERzeroToMany;endFill=0;endSize=18;fontFamily=Helvetica;fontSize=13;fontColor=#576477;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.42;exitDx=0;exitDy=0;entryX=1;entryY=0.19;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="game-to-player_game-one" value="1" vertex="1" connectable="0" parent="game-to-player_game" style="edgeLabel;html=0;align=center;verticalAlign=middle;resizable=0;fontFamily=Helvetica;fontSize=13;fontColor=#253449;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry x="-0.70" y="-17" width="30" height="20" relative="1" as="geometry">
+            <mxPoint x="-15" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="game-to-player_game-many" value="0..*" vertex="1" connectable="0" parent="game-to-player_game" style="edgeLabel;html=0;align=center;verticalAlign=middle;resizable=0;fontFamily=Helvetica;fontSize=13;fontColor=#253449;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry x="0.70" y="-17" width="30" height="20" relative="1" as="geometry">
+            <mxPoint x="-15" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="game-to-game_genre" value="" edge="1" parent="1" source="game" target="game_genre" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;strokeColor=#637084;strokeWidth=1.7;startArrow=ERone;startFill=0;startSize=12;endArrow=ERzeroToMany;endFill=0;endSize=18;fontFamily=Helvetica;fontSize=13;fontColor=#576477;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.42;exitDx=0;exitDy=0;entryX=0;entryY=0.44;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="game-to-game_genre-one" value="1" vertex="1" connectable="0" parent="game-to-game_genre" style="edgeLabel;html=0;align=center;verticalAlign=middle;resizable=0;fontFamily=Helvetica;fontSize=13;fontColor=#253449;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry x="-0.70" y="-17" width="30" height="20" relative="1" as="geometry">
+            <mxPoint x="-15" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="game-to-game_genre-many" value="0..*" vertex="1" connectable="0" parent="game-to-game_genre" style="edgeLabel;html=0;align=center;verticalAlign=middle;resizable=0;fontFamily=Helvetica;fontSize=13;fontColor=#253449;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry x="0.70" y="-17" width="30" height="20" relative="1" as="geometry">
+            <mxPoint x="-15" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="game-to-achievement" value="" edge="1" parent="1" source="game" target="achievement" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;strokeColor=#637084;strokeWidth=1.7;startArrow=ERone;startFill=0;startSize=12;endArrow=ERzeroToMany;endFill=0;endSize=18;fontFamily=Helvetica;fontSize=13;fontColor=#576477;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="game-to-achievement-one" value="1" vertex="1" connectable="0" parent="game-to-achievement" style="edgeLabel;html=0;align=center;verticalAlign=middle;resizable=0;fontFamily=Helvetica;fontSize=13;fontColor=#253449;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry x="-0.70" y="-17" width="30" height="20" relative="1" as="geometry">
+            <mxPoint x="-15" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="game-to-achievement-many" value="0..*" vertex="1" connectable="0" parent="game-to-achievement" style="edgeLabel;html=0;align=center;verticalAlign=middle;resizable=0;fontFamily=Helvetica;fontSize=13;fontColor=#253449;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry x="0.70" y="-17" width="30" height="20" relative="1" as="geometry">
+            <mxPoint x="-15" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="genre-to-game_genre" value="" edge="1" parent="1" source="genre" target="game_genre" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;strokeColor=#637084;strokeWidth=1.7;startArrow=ERone;startFill=0;startSize=12;endArrow=ERzeroToMany;endFill=0;endSize=18;fontFamily=Helvetica;fontSize=13;fontColor=#576477;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="genre-to-game_genre-one" value="1" vertex="1" connectable="0" parent="genre-to-game_genre" style="edgeLabel;html=0;align=center;verticalAlign=middle;resizable=0;fontFamily=Helvetica;fontSize=13;fontColor=#253449;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry x="-0.70" y="-17" width="30" height="20" relative="1" as="geometry">
+            <mxPoint x="-15" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="genre-to-game_genre-many" value="0..*" vertex="1" connectable="0" parent="genre-to-game_genre" style="edgeLabel;html=0;align=center;verticalAlign=middle;resizable=0;fontFamily=Helvetica;fontSize=13;fontColor=#253449;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry x="0.70" y="-17" width="30" height="20" relative="1" as="geometry">
+            <mxPoint x="-15" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="player_game-to-player_achievement" value="FK1" edge="1" parent="1" source="player_game" target="player_achievement" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;strokeColor=#637084;strokeWidth=1.7;startArrow=ERone;startFill=0;startSize=12;endArrow=ERzeroToMany;endFill=0;endSize=18;fontFamily=Helvetica;fontSize=13;fontColor=#576477;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="player_game-to-player_achievement-one" value="1" vertex="1" connectable="0" parent="player_game-to-player_achievement" style="edgeLabel;html=0;align=center;verticalAlign=middle;resizable=0;fontFamily=Helvetica;fontSize=13;fontColor=#253449;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry x="-0.70" y="-17" width="30" height="20" relative="1" as="geometry">
+            <mxPoint x="-15" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="player_game-to-player_achievement-many" value="0..*" vertex="1" connectable="0" parent="player_game-to-player_achievement" style="edgeLabel;html=0;align=center;verticalAlign=middle;resizable=0;fontFamily=Helvetica;fontSize=13;fontColor=#253449;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry x="0.70" y="-17" width="30" height="20" relative="1" as="geometry">
+            <mxPoint x="-15" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="achievement-to-player_achievement" value="FK2" edge="1" parent="1" source="achievement" target="player_achievement" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;strokeColor=#637084;strokeWidth=1.7;startArrow=ERone;startFill=0;startSize=12;endArrow=ERzeroToMany;endFill=0;endSize=18;fontFamily=Helvetica;fontSize=13;fontColor=#576477;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.42;exitDx=0;exitDy=0;entryX=1;entryY=0.47;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="achievement-to-player_achievement-one" value="1" vertex="1" connectable="0" parent="achievement-to-player_achievement" style="edgeLabel;html=0;align=center;verticalAlign=middle;resizable=0;fontFamily=Helvetica;fontSize=13;fontColor=#253449;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry x="-0.70" y="-17" width="30" height="20" relative="1" as="geometry">
+            <mxPoint x="-15" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="achievement-to-player_achievement-many" value="0..*" vertex="1" connectable="0" parent="achievement-to-player_achievement" style="edgeLabel;html=0;align=center;verticalAlign=middle;resizable=0;fontFamily=Helvetica;fontSize=13;fontColor=#253449;labelBackgroundColor=#FFFFFF;">
+          <mxGeometry x="0.70" y="-17" width="30" height="20" relative="1" as="geometry">
+            <mxPoint x="-15" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-title" value="Reading the diagram" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="565" width="330" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="PK   Primary key&#10;FK   Foreign key&#10;UQ   Unique value or column group&#10;&#10;Multiple PK fields form one composite key.&#10;All fields are required, NOT NULL.&#10;Entity IDs are generated automatically.&#10;&#10;1 → 0..* means one parent can have&#10;zero or many related records." style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="608" width="355" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="rule" value="Unlocks require ownership.&#10;The two composite foreign keys on&#10;player_achievement ensure the achievement&#10;belongs to a game in the player’s library." style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=14;verticalAlign=top;fontColor=#576477;" vertex="1" parent="1">
+          <mxGeometry x="60" y="867" width="360" height="102" as="geometry" />
+        </mxCell>
+        <mxCell id="footer" value="Text names, titles, email and descriptions must contain a non-whitespace character. Keys and links match schema.sql." style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=15;fontColor=#253449;fontSize=13;fontColor=#637084;" vertex="1" parent="1">
+          <mxGeometry x="530" y="987" width="1430" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
