@@ -1,51 +1,48 @@
-use std::fmt;
+use std::{error::Error, fmt};
 
-use postgres::error::SqlState;
-
+#[derive(Debug)]
 pub enum AppError {
-    Configuration,
+    Configuration(&'static str),
     InvalidDate,
-    Connection(postgres::Error),
-    Database(postgres::Error),
+    AlreadyExists,
+    InvalidReference,
+    InvalidValue,
+    InvalidFile(&'static str),
+    IdExhausted,
     NotFound(&'static str),
-}
-
-impl From<postgres::Error> for AppError {
-    fn from(error: postgres::Error) -> Self {
-        Self::Database(error)
-    }
+    Failure {
+        message: String,
+        source: Box<dyn Error + Send + Sync>,
+    },
 }
 
 impl fmt::Display for AppError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let message = match self {
+            Self::Configuration(message) | Self::NotFound(message) => message,
             Self::InvalidDate => "Invalid release date. Use a valid date in YYYY-MM-DD format.",
-            Self::Configuration => {
-                "Set DATABASE_URL to your PostgreSQL connection string. See README.md for setup."
+            Self::AlreadyExists => {
+                "This entry already exists. Use the list commands to find its ID."
             }
-            Self::Connection(_) => {
-                "Could not connect to PostgreSQL. Check DATABASE_URL and start the database using the setup instructions in README.md."
+            Self::InvalidReference => {
+                "A referenced entry does not exist, or the game is not in the player's library. Check the IDs and library."
             }
-            Self::NotFound(message) => message,
-            Self::Database(error) => match error.code() {
-                Some(&SqlState::UNIQUE_VIOLATION) => {
-                    "This entry already exists. Use the list commands to find its ID."
-                }
-                Some(&SqlState::FOREIGN_KEY_VIOLATION) => {
-                    "A referenced entry does not exist, or the game is not in the player's library. Check the IDs and library."
-                }
-                Some(&SqlState::CHECK_VIOLATION | &SqlState::NOT_NULL_VIOLATION) => {
-                    "Invalid value. Names, email, and descriptions must not be blank; points and playtime must be nonnegative."
-                }
-                Some(&SqlState::INVALID_DATETIME_FORMAT | &SqlState::DATETIME_FIELD_OVERFLOW) => {
-                    "Invalid release date. Use a valid date in YYYY-MM-DD format."
-                }
-                Some(&SqlState::UNDEFINED_TABLE) => {
-                    "The database schema is missing. Follow the database setup in README.md."
-                }
-                _ => "Database operation failed. Check the database connection and server logs.",
-            },
+            Self::InvalidValue => {
+                "Invalid value. Names, email, and descriptions must not be blank; points and playtime must be nonnegative."
+            }
+            Self::InvalidFile(reason) => return write!(f, "Invalid library file. {reason}"),
+            Self::IdExhausted => "No more IDs are available. Choose another library file.",
+            Self::Failure { message, .. } => message,
         };
         f.write_str(message)
+    }
+}
+
+impl Error for AppError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Failure { source, .. } => Some(source.as_ref()),
+            _ => None,
+        }
     }
 }
