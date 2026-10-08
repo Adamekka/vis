@@ -13,6 +13,7 @@ pub trait Storage {
     fn add_genre(&mut self, genre: NewGenre) -> Result<i64, AppError>;
     fn genres(&mut self) -> Result<Vec<Genre>, AppError>;
     fn tag_game(&mut self, tag: GameGenre) -> Result<(), AppError>;
+    fn game_genres(&mut self) -> Result<Vec<GameGenre>, AppError>;
     fn add_to_library(
         &mut self,
         player_id: i64,

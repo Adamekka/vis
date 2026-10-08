@@ -7,6 +7,8 @@ use crate::{
 
 #[derive(Subcommand)]
 pub enum Command {
+    /// List all players, games, genres, library entries, achievements, and relationships
+    AllItems,
     /// Add a player and print their ID
     AddPlayer { username: String, email: String },
     /// List players
@@ -53,6 +55,7 @@ pub enum Command {
 impl Command {
     pub fn execute(self, storage: &mut impl Storage) -> Result<(), AppError> {
         let request = match self {
+            Self::AllItems => Request::AllItems,
             Self::AddPlayer { username, email } => Request::AddPlayer { username, email },
             Self::Players => Request::Players,
             Self::AddGame {
@@ -103,79 +106,102 @@ impl Command {
             Self::Unlocked { player_id } => Request::Unlocked { player_id },
         };
 
-        match request.execute(storage)? {
-            Response::Created(id) => println!("{id}"),
-            Response::Players(players) => {
-                println!("ID\tUsername\tEmail");
-                for player in players {
-                    println!("{}\t{}\t{}", player.id, player.username, player.email);
+        // Use the same tables for individual lists and the combined report.
+        fn print_response(response: Response) {
+            match response {
+                Response::AllItems(items) => {
+                    println!("Players");
+                    print_response(Response::Players(items.players));
+                    println!("\nGames");
+                    print_response(Response::Games(items.games));
+                    println!("\nGenres");
+                    print_response(Response::Genres(items.genres));
+                    println!("\nGenre assignments");
+                    println!("Game ID\tGenre ID");
+                    for tag in items.game_genres {
+                        println!("{}\t{}", tag.game_id, tag.genre_id);
+                    }
+                    println!("\nLibrary entries");
+                    print_response(Response::Library(items.library));
+                    println!("\nAchievements");
+                    print_response(Response::Achievements(items.achievements));
+                    println!("\nUnlocked achievements");
+                    print_response(Response::Unlocked(items.unlocked));
                 }
-            }
-            Response::Games(games) => {
-                println!("ID\tTitle\tReleased\tGenres");
-                for game in games {
-                    println!(
-                        "{}\t{}\t{}\t{}",
-                        game.id,
-                        game.title,
-                        game.release_date,
-                        game.genres.join(", ")
-                    );
+                Response::Created(id) => println!("{id}"),
+                Response::Players(players) => {
+                    println!("ID\tUsername\tEmail");
+                    for player in players {
+                        println!("{}\t{}\t{}", player.id, player.username, player.email);
+                    }
                 }
-            }
-            Response::Genres(genres) => {
-                println!("ID\tName");
-                for genre in genres {
-                    println!("{}\t{}", genre.id, genre.name);
+                Response::Games(games) => {
+                    println!("ID\tTitle\tReleased\tGenres");
+                    for game in games {
+                        println!(
+                            "{}\t{}\t{}\t{}",
+                            game.id,
+                            game.title,
+                            game.release_date,
+                            game.genres.join(", ")
+                        );
+                    }
                 }
-            }
-            Response::GenreAssigned => println!("Genre assigned."),
-            Response::AddedToLibrary => println!("Game added to library."),
-            Response::Library(library) => {
-                println!("Player ID\tGame ID\tTitle\tStatus\tMinutes\tAdded at");
-                for entry in library {
-                    println!(
-                        "{}\t{}\t{}\t{}\t{}\t{}",
-                        entry.player_id,
-                        entry.game_id,
-                        entry.title,
-                        entry.status,
-                        entry.playtime_minutes,
-                        entry.added_at
-                    );
+                Response::Genres(genres) => {
+                    println!("ID\tName");
+                    for genre in genres {
+                        println!("{}\t{}", genre.id, genre.name);
+                    }
                 }
-            }
-            Response::ProgressUpdated => println!("Progress updated."),
-            Response::Achievements(achievements) => {
-                println!("ID\tGame ID\tName\tDescription\tPoints");
-                for achievement in achievements {
-                    println!(
-                        "{}\t{}\t{}\t{}\t{}",
-                        achievement.id,
-                        achievement.game_id,
-                        achievement.name,
-                        achievement.description,
-                        achievement.points
-                    );
+                Response::GenreAssigned => println!("Genre assigned."),
+                Response::AddedToLibrary => println!("Game added to library."),
+                Response::Library(library) => {
+                    println!("Player ID\tGame ID\tTitle\tStatus\tMinutes\tAdded at");
+                    for entry in library {
+                        println!(
+                            "{}\t{}\t{}\t{}\t{}\t{}",
+                            entry.player_id,
+                            entry.game_id,
+                            entry.title,
+                            entry.status,
+                            entry.playtime_minutes,
+                            entry.added_at
+                        );
+                    }
                 }
-            }
-            Response::AchievementUnlocked => println!("Achievement unlocked."),
-            Response::Unlocked(achievements) => {
-                println!("Player ID\tID\tGame ID\tGame\tAchievement\tPoints\tUnlocked at");
-                for achievement in achievements {
-                    println!(
-                        "{}\t{}\t{}\t{}\t{}\t{}\t{}",
-                        achievement.player_id,
-                        achievement.achievement_id,
-                        achievement.game_id,
-                        achievement.game_title,
-                        achievement.name,
-                        achievement.points,
-                        achievement.unlocked_at
-                    );
+                Response::ProgressUpdated => println!("Progress updated."),
+                Response::Achievements(achievements) => {
+                    println!("ID\tGame ID\tName\tDescription\tPoints");
+                    for achievement in achievements {
+                        println!(
+                            "{}\t{}\t{}\t{}\t{}",
+                            achievement.id,
+                            achievement.game_id,
+                            achievement.name,
+                            achievement.description,
+                            achievement.points
+                        );
+                    }
+                }
+                Response::AchievementUnlocked => println!("Achievement unlocked."),
+                Response::Unlocked(achievements) => {
+                    println!("Player ID\tID\tGame ID\tGame\tAchievement\tPoints\tUnlocked at");
+                    for achievement in achievements {
+                        println!(
+                            "{}\t{}\t{}\t{}\t{}\t{}\t{}",
+                            achievement.player_id,
+                            achievement.achievement_id,
+                            achievement.game_id,
+                            achievement.game_title,
+                            achievement.name,
+                            achievement.points,
+                            achievement.unlocked_at
+                        );
+                    }
                 }
             }
         }
+        print_response(request.execute(storage)?);
         Ok(())
     }
 }

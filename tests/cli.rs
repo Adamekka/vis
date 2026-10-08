@@ -11,6 +11,7 @@ fn help_and_configuration_errors() {
         .unwrap();
     assert!(help.status.success());
     assert!(String::from_utf8_lossy(&help.stdout).contains("add-to-library"));
+    assert!(String::from_utf8_lossy(&help.stdout).contains("all-items"));
 
     for value in [None, Some(""), Some("   ")] {
         let mut command = Command::new(env!("CARGO_BIN_EXE_vis"));
@@ -86,7 +87,8 @@ fn postgres_workflow() {
                 "{args:?}\n{stdout}\n{stderr}"
             );
             if success {
-                stdout.trim_end().to_owned()
+                // Preserve trailing tabs because they represent empty final columns.
+                stdout.trim_end_matches('\n').to_owned()
             } else {
                 stderr
             }
@@ -120,6 +122,18 @@ fn postgres_workflow() {
 }
 
 fn exercise_workflow(run: impl Fn(&[&str], bool) -> String) -> (i64, i64, i64) {
+    assert_eq!(
+        run(&["all-items"], true),
+        concat!(
+            "Players\nID\tUsername\tEmail\n\n",
+            "Games\nID\tTitle\tReleased\tGenres\n\n",
+            "Genres\nID\tName\n\n",
+            "Genre assignments\nGame ID\tGenre ID\n\n",
+            "Library entries\nPlayer ID\tGame ID\tTitle\tStatus\tMinutes\tAdded at\n\n",
+            "Achievements\nID\tGame ID\tName\tDescription\tPoints\n\n",
+            "Unlocked achievements\nPlayer ID\tID\tGame ID\tGame\tAchievement\tPoints\tUnlocked at",
+        )
+    );
     assert_eq!(run(&["players"], true), "ID\tUsername\tEmail");
     let player = run(&["add-player", "alex", "alex@example.test"], true);
     let other_player = run(&["add-player", "sam", "sam@example.test"], true);
@@ -232,6 +246,61 @@ fn exercise_workflow(run: impl Fn(&[&str], bool) -> String) -> (i64, i64, i64) {
     run(&["add-to-library", &player, "999999"], false);
     run(&["add-to-library", "999999", &game], false);
 
+    // Records without relationships must also appear in the combined report.
+    run(&["add-player", "lee", "lee@example.test"], true);
+    run(&["add-game", "Unplayed", "2022-03-04"], true);
+    run(&["add-genre", "Strategy"], true);
+    run(&["unlock", &other_player, &achievement], true);
+    let all_items = run(&["all-items"], true);
+    let sections: Vec<_> = all_items.split("\n\n").collect();
+    assert_eq!(sections.len(), 7);
+    assert_eq!(sections[0], format!("Players\n{}", run(&["players"], true)));
+    assert_eq!(sections[1], format!("Games\n{}", run(&["games"], true)));
+    assert_eq!(sections[2], format!("Genres\n{}", run(&["genres"], true)));
+    assert_eq!(
+        sections[3],
+        format!(
+            "Genre assignments\nGame ID\tGenre ID\n{game}\t{genre}\n{game}\t{other_genre}\n{other_game}\t{genre}"
+        )
+    );
+    let mut library_rows = Vec::new();
+    let mut unlocked_rows = Vec::new();
+    for player_id in [&player, &other_player] {
+        library_rows.extend(
+            run(&["library", player_id], true)
+                .lines()
+                .skip(1)
+                .map(str::to_owned),
+        );
+        unlocked_rows.extend(
+            run(&["unlocked", player_id], true)
+                .lines()
+                .skip(1)
+                .map(str::to_owned),
+        );
+    }
+    let mut achievement_rows = Vec::new();
+    for game_id in [&game, &other_game] {
+        achievement_rows.extend(
+            run(&["achievements", game_id], true)
+                .lines()
+                .skip(1)
+                .map(str::to_owned),
+        );
+    }
+    assert_eq!(
+        sections[4].lines().skip(2).collect::<Vec<_>>(),
+        library_rows
+    );
+    assert_eq!(
+        sections[5].lines().skip(2).collect::<Vec<_>>(),
+        achievement_rows
+    );
+    assert_eq!(
+        sections[6].lines().skip(2).collect::<Vec<_>>(),
+        unlocked_rows
+    );
+
     (
         player.parse().unwrap(),
         game.parse().unwrap(),
@@ -266,7 +335,17 @@ fn json_workflow() {
             "{args:?}\n{stdout}\n{stderr}"
         );
         if success {
-            stdout.trim_end().to_owned()
+            if args == ["all-items"]
+                && let Some(before) = before
+            {
+                assert_eq!(
+                    std::fs::read(&path).unwrap(),
+                    before,
+                    "Listing all items changed the library"
+                );
+            }
+            // Preserve trailing tabs because they represent empty final columns.
+            stdout.trim_end_matches('\n').to_owned()
         } else {
             assert_eq!(
                 std::fs::read(&path).unwrap(),

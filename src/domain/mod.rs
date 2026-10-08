@@ -1,4 +1,5 @@
 mod achievement;
+mod all_items;
 mod game;
 mod game_genre;
 mod genre;
@@ -10,6 +11,7 @@ mod status;
 mod storage;
 
 pub use achievement::{Achievement, NewAchievement};
+pub use all_items::AllItems;
 pub use game::{Game, NewGame};
 pub use game_genre::GameGenre;
 pub use genre::{Genre, NewGenre};

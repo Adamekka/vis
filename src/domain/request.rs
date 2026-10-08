@@ -1,11 +1,12 @@
 use crate::app_error::AppError;
 
 use super::{
-    Achievement, Game, GameGenre, Genre, NewAchievement, NewGame, NewGenre, NewPlayer, Player,
-    PlayerAchievement, PlayerGame, Progress, Status, Storage,
+    Achievement, AllItems, Game, GameGenre, Genre, NewAchievement, NewGame, NewGenre, NewPlayer,
+    Player, PlayerAchievement, PlayerGame, Progress, Status, Storage,
 };
 
 pub enum Request {
+    AllItems,
     AddPlayer {
         username: String,
         email: String,
@@ -56,6 +57,7 @@ pub enum Request {
 }
 
 pub enum Response {
+    AllItems(AllItems),
     Created(i64),
     Players(Vec<Player>),
     Games(Vec<Game>),
@@ -72,6 +74,31 @@ pub enum Response {
 impl Request {
     pub fn execute(self, storage: &mut impl Storage) -> Result<Response, AppError> {
         match self {
+            Self::AllItems => {
+                let players = storage.players()?;
+                let games = storage.games()?;
+                let genres = storage.genres()?;
+                let game_genres = storage.game_genres()?;
+                let mut library = Vec::new();
+                let mut achievements = Vec::new();
+                let mut unlocked = Vec::new();
+                for player in &players {
+                    library.extend(storage.library(player.id)?);
+                    unlocked.extend(storage.unlocked(player.id)?);
+                }
+                for game in &games {
+                    achievements.extend(storage.achievements(game.id)?);
+                }
+                Ok(Response::AllItems(AllItems {
+                    players,
+                    games,
+                    genres,
+                    game_genres,
+                    library,
+                    achievements,
+                    unlocked,
+                }))
+            }
             Self::AddPlayer { username, email } => Ok(Response::Created(
                 storage.add_player(NewPlayer::new(username, email)?)?,
             )),

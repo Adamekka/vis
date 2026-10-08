@@ -364,6 +364,20 @@ impl Storage for JsonStorage {
         })
     }
 
+    fn game_genres(&mut self) -> Result<Vec<GameGenre>, AppError> {
+        let mut tags: Vec<_> = self
+            .data
+            .game_genres
+            .iter()
+            .map(|tag| GameGenre {
+                game_id: tag.game_id,
+                genre_id: tag.genre_id,
+            })
+            .collect();
+        tags.sort_by_key(|tag| (tag.game_id, tag.genre_id));
+        Ok(tags)
+    }
+
     fn add_to_library(
         &mut self,
         player_id: i64,

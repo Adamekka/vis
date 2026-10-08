@@ -123,6 +123,21 @@ impl Storage for PostgresStorage {
         Ok(())
     }
 
+    fn game_genres(&mut self) -> Result<Vec<GameGenre>, AppError> {
+        Ok(self
+            .db
+            .query(
+                "SELECT game_id, genre_id FROM game_genre ORDER BY game_id, genre_id",
+                &[],
+            )?
+            .into_iter()
+            .map(|row| GameGenre {
+                game_id: row.get(0),
+                genre_id: row.get(1),
+            })
+            .collect())
+    }
+
     fn add_to_library(
         &mut self,
         player_id: i64,
