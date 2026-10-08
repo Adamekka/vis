@@ -10,7 +10,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     app_error::AppError,
     domain::{
-        Achievement, Game, GameGenre, Genre, Player, PlayerAchievement, PlayerGame, Status, Storage,
+        Achievement, Game, GameGenre, Genre, NewAchievement, NewGame, NewGenre, NewPlayer, Player,
+        PlayerAchievement, PlayerGame, Progress, Status, Storage,
     },
 };
 
@@ -123,24 +124,17 @@ impl Snapshot {
         let mut usernames = HashSet::new();
         let mut emails = HashSet::new();
         for player in &self.players {
-            if player.username.trim().is_empty() || player.email.trim().is_empty() {
-                return Err(AppError::InvalidValue);
-            }
+            NewPlayer::new(player.username.clone(), player.email.clone())?;
             if !usernames.insert(&player.username) || !emails.insert(&player.email) {
                 return Err(AppError::AlreadyExists);
             }
         }
         for game in &self.games {
-            if game.title.trim().is_empty() {
-                return Err(AppError::InvalidValue);
-            }
-            Game::validate_release_date(&game.release_date)?;
+            NewGame::new(game.title.clone(), game.release_date.clone())?;
         }
         let mut genre_names = HashSet::new();
         for genre in &self.genres {
-            if genre.name.trim().is_empty() {
-                return Err(AppError::InvalidValue);
-            }
+            NewGenre::new(genre.name.clone())?;
             if !genre_names.insert(&genre.name) {
                 return Err(AppError::AlreadyExists);
             }
@@ -159,9 +153,7 @@ impl Snapshot {
             if !player_ids.contains(&entry.player_id) || !game_ids.contains(&entry.game_id) {
                 return Err(AppError::InvalidReference);
             }
-            if entry.playtime_minutes < 0 {
-                return Err(AppError::InvalidValue);
-            }
+            Progress::new(entry.status, entry.playtime_minutes)?;
             if !library.insert((entry.player_id, entry.game_id)) {
                 return Err(AppError::AlreadyExists);
             }
@@ -171,12 +163,11 @@ impl Snapshot {
             if !game_ids.contains(&achievement.game_id) {
                 return Err(AppError::InvalidReference);
             }
-            if achievement.name.trim().is_empty()
-                || achievement.description.trim().is_empty()
-                || achievement.points < 0
-            {
-                return Err(AppError::InvalidValue);
-            }
+            NewAchievement::new(
+                achievement.name.clone(),
+                achievement.description.clone(),
+                achievement.points,
+            )?;
             if !achievement_names.insert((achievement.game_id, &achievement.name)) {
                 return Err(AppError::AlreadyExists);
             }
@@ -265,13 +256,14 @@ fn next_id(ids: impl Iterator<Item = i64>) -> Result<i64, AppError> {
 }
 
 impl Storage for JsonStorage {
-    fn add_player(&mut self, username: &str, email: &str) -> Result<i64, AppError> {
+    fn add_player(&mut self, player: NewPlayer) -> Result<i64, AppError> {
+        let (username, email) = player.into_parts();
         self.update(|data| {
             let id = next_id(data.players.iter().map(|player| player.id))?;
             data.players.push(StoredPlayer {
                 id,
-                username: username.to_owned(),
-                email: email.to_owned(),
+                username,
+                email,
             });
             Ok(id)
         })
@@ -292,13 +284,14 @@ impl Storage for JsonStorage {
         Ok(players)
     }
 
-    fn add_game(&mut self, title: &str, release_date: &str) -> Result<i64, AppError> {
+    fn add_game(&mut self, game: NewGame) -> Result<i64, AppError> {
+        let (title, release_date) = game.into_parts();
         self.update(|data| {
             let id = next_id(data.games.iter().map(|game| game.id))?;
             data.games.push(StoredGame {
                 id,
-                title: title.to_owned(),
-                release_date: release_date.to_owned(),
+                title,
+                release_date,
             });
             Ok(id)
         })
@@ -338,13 +331,11 @@ impl Storage for JsonStorage {
         Ok(games)
     }
 
-    fn add_genre(&mut self, name: &str) -> Result<i64, AppError> {
+    fn add_genre(&mut self, genre: NewGenre) -> Result<i64, AppError> {
+        let name = genre.into_name();
         self.update(|data| {
             let id = next_id(data.genres.iter().map(|genre| genre.id))?;
-            data.genres.push(StoredGenre {
-                id,
-                name: name.to_owned(),
-            });
+            data.genres.push(StoredGenre { id, name });
             Ok(id)
         })
     }
@@ -373,17 +364,31 @@ impl Storage for JsonStorage {
         })
     }
 
-    fn add_to_library(&mut self, player_id: i64, game_id: i64) -> Result<(), AppError> {
+    fn add_to_library(
+        &mut self,
+        player_id: i64,
+        game_id: i64,
+        progress: Progress,
+    ) -> Result<(), AppError> {
+        let (status, playtime_minutes) = progress.into_parts();
         self.update(|data| {
             data.player_games.push(StoredPlayerGame {
                 player_id,
                 game_id,
-                status: Status::NotStarted,
-                playtime_minutes: 0,
+                status,
+                playtime_minutes,
                 added_at: Utc::now().to_rfc3339(),
             });
             Ok(())
         })
+    }
+
+    fn owns_game(&mut self, player_id: i64, game_id: i64) -> Result<bool, AppError> {
+        Ok(self
+            .data
+            .player_games
+            .iter()
+            .any(|entry| entry.player_id == player_id && entry.game_id == game_id))
     }
 
     fn library(&mut self, player_id: i64) -> Result<Vec<PlayerGame>, AppError> {
@@ -417,9 +422,9 @@ impl Storage for JsonStorage {
         &mut self,
         player_id: i64,
         game_id: i64,
-        status: Status,
-        playtime_minutes: i32,
+        progress: Progress,
     ) -> Result<(), AppError> {
+        let (status, playtime_minutes) = progress.into_parts();
         self.update(|data| {
             let entry = data.player_games.iter_mut()
                 .find(|entry| entry.player_id == player_id && entry.game_id == game_id)
@@ -433,17 +438,16 @@ impl Storage for JsonStorage {
     fn add_achievement(
         &mut self,
         game_id: i64,
-        name: &str,
-        description: &str,
-        points: i32,
+        achievement: NewAchievement,
     ) -> Result<i64, AppError> {
+        let (name, description, points) = achievement.into_parts();
         self.update(|data| {
             let id = next_id(data.achievements.iter().map(|achievement| achievement.id))?;
             data.achievements.push(StoredAchievement {
                 id,
                 game_id,
-                name: name.to_owned(),
-                description: description.to_owned(),
+                name,
+                description,
                 points,
             });
             Ok(id)
@@ -471,20 +475,30 @@ impl Storage for JsonStorage {
         Ok(achievements)
     }
 
-    fn unlock(&mut self, player_id: i64, achievement_id: i64) -> Result<(), AppError> {
+    fn achievement(&mut self, achievement_id: i64) -> Result<Achievement, AppError> {
+        let achievement = self
+            .data
+            .achievements
+            .iter()
+            .find(|achievement| achievement.id == achievement_id)
+            .ok_or(AppError::NotFound(
+                "Achievement not found. Use achievements to list IDs.",
+            ))?;
+        Ok(Achievement {
+            id: achievement.id,
+            game_id: achievement.game_id,
+            name: achievement.name.clone(),
+            description: achievement.description.clone(),
+            points: achievement.points,
+        })
+    }
+
+    fn unlock(&mut self, player_id: i64, achievement: Achievement) -> Result<(), AppError> {
         self.update(|data| {
-            let game_id = data
-                .achievements
-                .iter()
-                .find(|achievement| achievement.id == achievement_id)
-                .ok_or(AppError::NotFound(
-                    "Achievement not found. Use achievements to list IDs.",
-                ))?
-                .game_id;
             data.player_achievements.push(StoredPlayerAchievement {
                 player_id,
-                achievement_id,
-                game_id,
+                achievement_id: achievement.id,
+                game_id: achievement.game_id,
                 unlocked_at: Utc::now().to_rfc3339(),
             });
             Ok(())

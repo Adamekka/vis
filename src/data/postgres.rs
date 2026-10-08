@@ -3,7 +3,8 @@ use postgres::{Client, NoTls, error::SqlState};
 use crate::{
     app_error::AppError,
     domain::{
-        Achievement, Game, GameGenre, Genre, Player, PlayerAchievement, PlayerGame, Status, Storage,
+        Achievement, Game, GameGenre, Genre, NewAchievement, NewGame, NewGenre, NewPlayer, Player,
+        PlayerAchievement, PlayerGame, Progress, Storage,
     },
 };
 
@@ -36,7 +37,8 @@ impl PostgresStorage {
 }
 
 impl Storage for PostgresStorage {
-    fn add_player(&mut self, username: &str, email: &str) -> Result<i64, AppError> {
+    fn add_player(&mut self, player: NewPlayer) -> Result<i64, AppError> {
+        let (username, email) = player.into_parts();
         Ok(self
             .db
             .query_one(
@@ -59,8 +61,8 @@ impl Storage for PostgresStorage {
             .collect())
     }
 
-    fn add_game(&mut self, title: &str, release_date: &str) -> Result<i64, AppError> {
-        Game::validate_release_date(release_date)?;
+    fn add_game(&mut self, game: NewGame) -> Result<i64, AppError> {
+        let (title, release_date) = game.into_parts();
         Ok(self
             .db
             .query_one(
@@ -90,7 +92,8 @@ impl Storage for PostgresStorage {
             .collect())
     }
 
-    fn add_genre(&mut self, name: &str) -> Result<i64, AppError> {
+    fn add_genre(&mut self, genre: NewGenre) -> Result<i64, AppError> {
+        let name = genre.into_name();
         Ok(self
             .db
             .query_one(
@@ -120,12 +123,29 @@ impl Storage for PostgresStorage {
         Ok(())
     }
 
-    fn add_to_library(&mut self, player_id: i64, game_id: i64) -> Result<(), AppError> {
+    fn add_to_library(
+        &mut self,
+        player_id: i64,
+        game_id: i64,
+        progress: Progress,
+    ) -> Result<(), AppError> {
+        let (status, playtime_minutes) = progress.into_parts();
+        let status = status.to_string();
         self.db.execute(
-            "INSERT INTO player_game (player_id, game_id) VALUES ($1, $2)",
-            &[&player_id, &game_id],
+            "INSERT INTO player_game (player_id, game_id, status, playtime_minutes) VALUES ($1, $2, $3, $4)",
+            &[&player_id, &game_id, &status, &playtime_minutes],
         )?;
         Ok(())
+    }
+
+    fn owns_game(&mut self, player_id: i64, game_id: i64) -> Result<bool, AppError> {
+        Ok(self
+            .db
+            .query_one(
+                "SELECT EXISTS (SELECT 1 FROM player_game WHERE player_id = $1 AND game_id = $2)",
+                &[&player_id, &game_id],
+            )?
+            .get(0))
     }
 
     fn library(&mut self, player_id: i64) -> Result<Vec<PlayerGame>, AppError> {
@@ -153,9 +173,9 @@ impl Storage for PostgresStorage {
         &mut self,
         player_id: i64,
         game_id: i64,
-        status: Status,
-        playtime_minutes: i32,
+        progress: Progress,
     ) -> Result<(), AppError> {
+        let (status, playtime_minutes) = progress.into_parts();
         let status = status.to_string();
         if self.db.execute(
             "UPDATE player_game SET status = $3, playtime_minutes = $4 WHERE player_id = $1 AND game_id = $2",
@@ -169,10 +189,9 @@ impl Storage for PostgresStorage {
     fn add_achievement(
         &mut self,
         game_id: i64,
-        name: &str,
-        description: &str,
-        points: i32,
+        achievement: NewAchievement,
     ) -> Result<i64, AppError> {
+        let (name, description, points) = achievement.into_parts();
         Ok(self.db.query_one(
             "INSERT INTO achievement (game_id, name, description, points) VALUES ($1, $2, $3, $4) RETURNING id",
             &[&game_id, &name, &description, &points],
@@ -194,17 +213,30 @@ impl Storage for PostgresStorage {
         }).collect())
     }
 
-    fn unlock(&mut self, player_id: i64, achievement_id: i64) -> Result<(), AppError> {
-        if self.db.execute(
-            "INSERT INTO player_achievement (player_id, achievement_id, game_id)
-             SELECT $1, id, game_id FROM achievement WHERE id = $2",
-            &[&player_id, &achievement_id],
-        )? == 0
-        {
-            return Err(AppError::NotFound(
+    fn achievement(&mut self, achievement_id: i64) -> Result<Achievement, AppError> {
+        let row = self
+            .db
+            .query_opt(
+                "SELECT id, game_id, name, description, points FROM achievement WHERE id = $1",
+                &[&achievement_id],
+            )?
+            .ok_or(AppError::NotFound(
                 "Achievement not found. Use achievements to list IDs.",
-            ));
-        }
+            ))?;
+        Ok(Achievement {
+            id: row.get(0),
+            game_id: row.get(1),
+            name: row.get(2),
+            description: row.get(3),
+            points: row.get(4),
+        })
+    }
+
+    fn unlock(&mut self, player_id: i64, achievement: Achievement) -> Result<(), AppError> {
+        self.db.execute(
+            "INSERT INTO player_achievement (player_id, achievement_id, game_id) VALUES ($1, $2, $3)",
+            &[&player_id, &achievement.id, &achievement.game_id],
+        )?;
         Ok(())
     }
 

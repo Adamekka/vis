@@ -2,7 +2,7 @@ use clap::Subcommand;
 
 use crate::{
     app_error::AppError,
-    domain::{GameGenre, Status, Storage},
+    domain::{Request, Response, Status, Storage},
 };
 
 #[derive(Subcommand)]
@@ -52,25 +52,66 @@ pub enum Command {
 
 impl Command {
     pub fn execute(self, storage: &mut impl Storage) -> Result<(), AppError> {
-        match self {
-            Command::AddPlayer { username, email } => {
-                println!("{}", storage.add_player(&username, &email)?);
+        let request = match self {
+            Self::AddPlayer { username, email } => Request::AddPlayer { username, email },
+            Self::Players => Request::Players,
+            Self::AddGame {
+                title,
+                release_date,
+            } => Request::AddGame {
+                title,
+                release_date,
+            },
+            Self::Games => Request::Games,
+            Self::AddGenre { name } => Request::AddGenre { name },
+            Self::Genres => Request::Genres,
+            Self::TagGame { game_id, genre_id } => Request::TagGame { game_id, genre_id },
+            Self::AddToLibrary { player_id, game_id } => {
+                Request::AddToLibrary { player_id, game_id }
             }
-            Command::Players => {
-                let players = storage.players()?;
+            Self::Library { player_id } => Request::Library { player_id },
+            Self::SetProgress {
+                player_id,
+                game_id,
+                status,
+                playtime_minutes,
+            } => Request::SetProgress {
+                player_id,
+                game_id,
+                status,
+                playtime_minutes,
+            },
+            Self::AddAchievement {
+                game_id,
+                name,
+                description,
+                points,
+            } => Request::AddAchievement {
+                game_id,
+                name,
+                description,
+                points,
+            },
+            Self::Achievements { game_id } => Request::Achievements { game_id },
+            Self::Unlock {
+                player_id,
+                achievement_id,
+            } => Request::Unlock {
+                player_id,
+                achievement_id,
+            },
+            Self::Unlocked { player_id } => Request::Unlocked { player_id },
+        };
+
+        match request.execute(storage)? {
+            Response::Created(id) => println!("{id}"),
+            Response::Players(players) => {
                 println!("ID\tUsername\tEmail");
                 for player in players {
                     println!("{}\t{}\t{}", player.id, player.username, player.email);
                 }
             }
-            Command::AddGame {
-                title,
-                release_date,
-            } => {
-                println!("{}", storage.add_game(&title, &release_date)?);
-            }
-            Command::Games => {
-                let games = storage.games()?;
+            Response::Games(games) => {
                 println!("ID\tTitle\tReleased\tGenres");
                 for game in games {
                     println!(
@@ -82,26 +123,15 @@ impl Command {
                     );
                 }
             }
-            Command::AddGenre { name } => {
-                println!("{}", storage.add_genre(&name)?);
-            }
-            Command::Genres => {
-                let genres = storage.genres()?;
+            Response::Genres(genres) => {
                 println!("ID\tName");
                 for genre in genres {
                     println!("{}\t{}", genre.id, genre.name);
                 }
             }
-            Command::TagGame { game_id, genre_id } => {
-                storage.tag_game(GameGenre { game_id, genre_id })?;
-                println!("Genre assigned.");
-            }
-            Command::AddToLibrary { player_id, game_id } => {
-                storage.add_to_library(player_id, game_id)?;
-                println!("Game added to library.");
-            }
-            Command::Library { player_id } => {
-                let library = storage.library(player_id)?;
+            Response::GenreAssigned => println!("Genre assigned."),
+            Response::AddedToLibrary => println!("Game added to library."),
+            Response::Library(library) => {
                 println!("Player ID\tGame ID\tTitle\tStatus\tMinutes\tAdded at");
                 for entry in library {
                     println!(
@@ -115,28 +145,8 @@ impl Command {
                     );
                 }
             }
-            Command::SetProgress {
-                player_id,
-                game_id,
-                status,
-                playtime_minutes,
-            } => {
-                storage.set_progress(player_id, game_id, status, playtime_minutes)?;
-                println!("Progress updated.");
-            }
-            Command::AddAchievement {
-                game_id,
-                name,
-                description,
-                points,
-            } => {
-                println!(
-                    "{}",
-                    storage.add_achievement(game_id, &name, &description, points)?
-                );
-            }
-            Command::Achievements { game_id } => {
-                let achievements = storage.achievements(game_id)?;
+            Response::ProgressUpdated => println!("Progress updated."),
+            Response::Achievements(achievements) => {
                 println!("ID\tGame ID\tName\tDescription\tPoints");
                 for achievement in achievements {
                     println!(
@@ -149,15 +159,8 @@ impl Command {
                     );
                 }
             }
-            Command::Unlock {
-                player_id,
-                achievement_id,
-            } => {
-                storage.unlock(player_id, achievement_id)?;
-                println!("Achievement unlocked.");
-            }
-            Command::Unlocked { player_id } => {
-                let achievements = storage.unlocked(player_id)?;
+            Response::AchievementUnlocked => println!("Achievement unlocked."),
+            Response::Unlocked(achievements) => {
                 println!("Player ID\tID\tGame ID\tGame\tAchievement\tPoints\tUnlocked at");
                 for achievement in achievements {
                     println!(
