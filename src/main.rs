@@ -2,6 +2,7 @@ mod app_error;
 mod data;
 mod domain;
 mod presentation;
+mod service;
 
 use std::{env, error::Error, process::ExitCode};
 
@@ -11,6 +12,7 @@ use crate::{
     app_error::AppError,
     data::{JsonStorage, PostgresStorage},
     presentation::{Backend, Cli},
+    service::LibraryService,
 };
 
 fn main() -> ExitCode {
@@ -42,14 +44,14 @@ fn run(cli: Cli) -> Result<(), AppError> {
                     "Set DATABASE_URL to your PostgreSQL connection string.",
                 ));
             }
-            let mut storage = PostgresStorage::connect(&database_url)?;
-            cli.command.execute(&mut storage)
+            let storage = PostgresStorage::connect(&database_url)?;
+            cli.command.execute(&mut LibraryService::new(storage))
         }
         Backend::Json => {
             // Clap requires a path in JSON mode, so absence is a parser invariant violation.
             let path = cli.file.expect("clap requires --file for JSON storage");
-            let mut storage = JsonStorage::open(&path)?;
-            cli.command.execute(&mut storage)
+            let storage = JsonStorage::open(&path)?;
+            cli.command.execute(&mut LibraryService::new(storage))
         }
     }
 }

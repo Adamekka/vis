@@ -206,8 +206,11 @@ fn exercise_workflow(run: impl Fn(&[&str], bool) -> String) -> (i64, i64, i64) {
     run(&["add-to-library", &other_player, &game], true);
     assert!(run(&["library", &player], true).contains("not_started\t0"));
     assert!(run(&["add-to-library", &player, &game], false).contains("already exists"));
-    run(&["set-progress", &player, &game, "playing", "120"], true);
-    assert!(run(&["library", &player], true).contains("playing\t120"));
+    // Every status must survive the CLI, service, domain, and storage mappings.
+    for status in ["completed", "abandoned", "not_started", "playing"] {
+        run(&["set-progress", &player, &game, status, "120"], true);
+        assert!(run(&["library", &player], true).contains(&format!("{status}\t120")));
+    }
     assert!(run(&["library", &other_player], true).contains("not_started\t0"));
     run(&["set-progress", &player, &game, "unknown", "5"], false);
     run(

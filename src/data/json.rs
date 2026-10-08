@@ -7,11 +7,13 @@ use std::{
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
+use super::models::*;
+
 use crate::{
     app_error::AppError,
     domain::{
         Achievement, Game, GameGenre, Genre, NewAchievement, NewGame, NewGenre, NewPlayer, Player,
-        PlayerAchievement, PlayerGame, Progress, Status, Storage,
+        PlayerAchievement, PlayerGame, Progress, Storage,
     },
 };
 
@@ -30,78 +32,6 @@ struct Snapshot {
     player_games: Vec<StoredPlayerGame>,
     achievements: Vec<StoredAchievement>,
     player_achievements: Vec<StoredPlayerAchievement>,
-}
-
-// Persist the normalized records. Titles, genre names, and achievement details in list
-// results are joined at read time so the file never contains conflicting copies of them.
-#[derive(Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct StoredPlayer {
-    id: i64,
-    username: String,
-    email: String,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct StoredGame {
-    id: i64,
-    title: String,
-    release_date: String,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct StoredGenre {
-    id: i64,
-    name: String,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct StoredGameGenre {
-    game_id: i64,
-    genre_id: i64,
-}
-
-// Serde's remote derive keeps the JSON representation out of the domain enum.
-#[derive(Deserialize, Serialize)]
-#[serde(remote = "Status", rename_all = "snake_case")]
-enum StoredStatus {
-    NotStarted,
-    Playing,
-    Completed,
-    Abandoned,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct StoredPlayerGame {
-    player_id: i64,
-    game_id: i64,
-    #[serde(with = "StoredStatus")]
-    status: Status,
-    playtime_minutes: i32,
-    added_at: String,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct StoredAchievement {
-    id: i64,
-    game_id: i64,
-    name: String,
-    description: String,
-    points: i32,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct StoredPlayerAchievement {
-    player_id: i64,
-    achievement_id: i64,
-    game_id: i64,
-    unlocked_at: String,
 }
 
 impl Snapshot {
@@ -124,17 +54,17 @@ impl Snapshot {
         let mut usernames = HashSet::new();
         let mut emails = HashSet::new();
         for player in &self.players {
-            NewPlayer::new(player.username.clone(), player.email.clone())?;
+            NewPlayer::try_from((player.username.clone(), player.email.clone()))?;
             if !usernames.insert(&player.username) || !emails.insert(&player.email) {
                 return Err(AppError::AlreadyExists);
             }
         }
         for game in &self.games {
-            NewGame::new(game.title.clone(), game.release_date.clone())?;
+            NewGame::try_from((game.title.clone(), game.release_date.clone()))?;
         }
         let mut genre_names = HashSet::new();
         for genre in &self.genres {
-            NewGenre::new(genre.name.clone())?;
+            NewGenre::try_from(genre.name.clone())?;
             if !genre_names.insert(&genre.name) {
                 return Err(AppError::AlreadyExists);
             }
@@ -153,7 +83,7 @@ impl Snapshot {
             if !player_ids.contains(&entry.player_id) || !game_ids.contains(&entry.game_id) {
                 return Err(AppError::InvalidReference);
             }
-            Progress::new(entry.status, entry.playtime_minutes)?;
+            Progress::try_from((entry.status.into(), entry.playtime_minutes))?;
             if !library.insert((entry.player_id, entry.game_id)) {
                 return Err(AppError::AlreadyExists);
             }
@@ -163,11 +93,11 @@ impl Snapshot {
             if !game_ids.contains(&achievement.game_id) {
                 return Err(AppError::InvalidReference);
             }
-            NewAchievement::new(
+            NewAchievement::try_from((
                 achievement.name.clone(),
                 achievement.description.clone(),
                 achievement.points,
-            )?;
+            ))?;
             if !achievement_names.insert((achievement.game_id, &achievement.name)) {
                 return Err(AppError::AlreadyExists);
             }
@@ -257,7 +187,7 @@ fn next_id(ids: impl Iterator<Item = i64>) -> Result<i64, AppError> {
 
 impl Storage for JsonStorage {
     fn add_player(&mut self, player: NewPlayer) -> Result<i64, AppError> {
-        let (username, email) = player.into_parts();
+        let PlayerValues { username, email } = player.into();
         self.update(|data| {
             let id = next_id(data.players.iter().map(|player| player.id))?;
             data.players.push(StoredPlayer {
@@ -274,18 +204,18 @@ impl Storage for JsonStorage {
             .data
             .players
             .iter()
-            .map(|player| Player {
-                id: player.id,
-                username: player.username.clone(),
-                email: player.email.clone(),
-            })
+            .cloned()
+            .map(Player::from)
             .collect();
         players.sort_by_key(|player| player.id);
         Ok(players)
     }
 
     fn add_game(&mut self, game: NewGame) -> Result<i64, AppError> {
-        let (title, release_date) = game.into_parts();
+        let GameValues {
+            title,
+            release_date,
+        } = game.into();
         self.update(|data| {
             let id = next_id(data.games.iter().map(|game| game.id))?;
             data.games.push(StoredGame {
@@ -319,12 +249,10 @@ impl Storage for JsonStorage {
                     })
                     .collect();
                 genres.sort();
-                Game {
-                    id: game.id,
-                    title: game.title.clone(),
-                    release_date: game.release_date.clone(),
+                Game::from(GameView {
+                    record: game.clone(),
                     genres,
-                }
+                })
             })
             .collect();
         games.sort_by_key(|game| game.id);
@@ -332,7 +260,7 @@ impl Storage for JsonStorage {
     }
 
     fn add_genre(&mut self, genre: NewGenre) -> Result<i64, AppError> {
-        let name = genre.into_name();
+        let GenreValues { name } = genre.into();
         self.update(|data| {
             let id = next_id(data.genres.iter().map(|genre| genre.id))?;
             data.genres.push(StoredGenre { id, name });
@@ -341,25 +269,15 @@ impl Storage for JsonStorage {
     }
 
     fn genres(&mut self) -> Result<Vec<Genre>, AppError> {
-        let mut genres: Vec<_> = self
-            .data
-            .genres
-            .iter()
-            .map(|genre| Genre {
-                id: genre.id,
-                name: genre.name.clone(),
-            })
-            .collect();
+        let mut genres: Vec<_> = self.data.genres.iter().cloned().map(Genre::from).collect();
         genres.sort_by_key(|genre| genre.id);
         Ok(genres)
     }
 
     fn tag_game(&mut self, tag: GameGenre) -> Result<(), AppError> {
+        let tag = StoredGameGenre::from(tag);
         self.update(|data| {
-            data.game_genres.push(StoredGameGenre {
-                game_id: tag.game_id,
-                genre_id: tag.genre_id,
-            });
+            data.game_genres.push(tag);
             Ok(())
         })
     }
@@ -369,10 +287,8 @@ impl Storage for JsonStorage {
             .data
             .game_genres
             .iter()
-            .map(|tag| GameGenre {
-                game_id: tag.game_id,
-                genre_id: tag.genre_id,
-            })
+            .cloned()
+            .map(GameGenre::from)
             .collect();
         tags.sort_by_key(|tag| (tag.game_id, tag.genre_id));
         Ok(tags)
@@ -384,7 +300,10 @@ impl Storage for JsonStorage {
         game_id: i64,
         progress: Progress,
     ) -> Result<(), AppError> {
-        let (status, playtime_minutes) = progress.into_parts();
+        let ProgressValues {
+            status,
+            playtime_minutes,
+        } = progress.into();
         self.update(|data| {
             data.player_games.push(StoredPlayerGame {
                 player_id,
@@ -412,20 +331,18 @@ impl Storage for JsonStorage {
             .player_games
             .iter()
             .filter(|entry| entry.player_id == player_id)
-            .map(|entry| PlayerGame {
-                player_id: entry.player_id,
-                game_id: entry.game_id,
-                title: self
-                    .data
-                    .games
-                    .iter()
-                    .find(|game| game.id == entry.game_id)
-                    .expect("validated game reference")
-                    .title
-                    .clone(),
-                status: entry.status.to_string(),
-                playtime_minutes: entry.playtime_minutes,
-                added_at: entry.added_at.clone(),
+            .map(|entry| {
+                PlayerGame::from(PlayerGameView {
+                    record: entry.clone(),
+                    title: self
+                        .data
+                        .games
+                        .iter()
+                        .find(|game| game.id == entry.game_id)
+                        .expect("validated game reference")
+                        .title
+                        .clone(),
+                })
             })
             .collect();
         library.sort_by_key(|entry| entry.game_id);
@@ -438,7 +355,10 @@ impl Storage for JsonStorage {
         game_id: i64,
         progress: Progress,
     ) -> Result<(), AppError> {
-        let (status, playtime_minutes) = progress.into_parts();
+        let ProgressValues {
+            status,
+            playtime_minutes,
+        } = progress.into();
         self.update(|data| {
             let entry = data.player_games.iter_mut()
                 .find(|entry| entry.player_id == player_id && entry.game_id == game_id)
@@ -454,7 +374,11 @@ impl Storage for JsonStorage {
         game_id: i64,
         achievement: NewAchievement,
     ) -> Result<i64, AppError> {
-        let (name, description, points) = achievement.into_parts();
+        let AchievementValues {
+            name,
+            description,
+            points,
+        } = achievement.into();
         self.update(|data| {
             let id = next_id(data.achievements.iter().map(|achievement| achievement.id))?;
             data.achievements.push(StoredAchievement {
@@ -477,13 +401,8 @@ impl Storage for JsonStorage {
             .achievements
             .iter()
             .filter(|achievement| achievement.game_id == game_id)
-            .map(|achievement| Achievement {
-                id: achievement.id,
-                game_id: achievement.game_id,
-                name: achievement.name.clone(),
-                description: achievement.description.clone(),
-                points: achievement.points,
-            })
+            .cloned()
+            .map(Achievement::from)
             .collect();
         achievements.sort_by_key(|achievement| achievement.id);
         Ok(achievements)
@@ -498,16 +417,11 @@ impl Storage for JsonStorage {
             .ok_or(AppError::NotFound(
                 "Achievement not found. Use achievements to list IDs.",
             ))?;
-        Ok(Achievement {
-            id: achievement.id,
-            game_id: achievement.game_id,
-            name: achievement.name.clone(),
-            description: achievement.description.clone(),
-            points: achievement.points,
-        })
+        Ok(Achievement::from(achievement.clone()))
     }
 
     fn unlock(&mut self, player_id: i64, achievement: Achievement) -> Result<(), AppError> {
+        let achievement = StoredAchievement::from(achievement);
         self.update(|data| {
             data.player_achievements.push(StoredPlayerAchievement {
                 player_id,
@@ -539,15 +453,12 @@ impl Storage for JsonStorage {
                     .iter()
                     .find(|game| game.id == unlock.game_id)
                     .expect("validated game reference");
-                PlayerAchievement {
-                    player_id: unlock.player_id,
-                    achievement_id: unlock.achievement_id,
-                    game_id: unlock.game_id,
+                PlayerAchievement::from(PlayerAchievementView {
+                    record: unlock.clone(),
                     game_title: game.title.clone(),
                     name: achievement.name.clone(),
                     points: achievement.points,
-                    unlocked_at: unlock.unlocked_at.clone(),
-                }
+                })
             })
             .collect();
         achievements.sort_by_key(|achievement| achievement.achievement_id);

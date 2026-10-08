@@ -8,6 +8,8 @@ use crate::{
     },
 };
 
+use super::models::*;
+
 pub struct PostgresStorage {
     db: Client,
 }
@@ -38,7 +40,7 @@ impl PostgresStorage {
 
 impl Storage for PostgresStorage {
     fn add_player(&mut self, player: NewPlayer) -> Result<i64, AppError> {
-        let (username, email) = player.into_parts();
+        let PlayerValues { username, email } = player.into();
         Ok(self
             .db
             .query_one(
@@ -49,20 +51,18 @@ impl Storage for PostgresStorage {
     }
 
     fn players(&mut self) -> Result<Vec<Player>, AppError> {
-        Ok(self
-            .db
+        self.db
             .query("SELECT id, username, email FROM player ORDER BY id", &[])?
             .into_iter()
-            .map(|row| Player {
-                id: row.get(0),
-                username: row.get(1),
-                email: row.get(2),
-            })
-            .collect())
+            .map(|row| StoredPlayer::try_from(row).map(Player::from))
+            .collect()
     }
 
     fn add_game(&mut self, game: NewGame) -> Result<i64, AppError> {
-        let (title, release_date) = game.into_parts();
+        let GameValues {
+            title,
+            release_date,
+        } = game.into();
         Ok(self
             .db
             .query_one(
@@ -73,27 +73,21 @@ impl Storage for PostgresStorage {
     }
 
     fn games(&mut self) -> Result<Vec<Game>, AppError> {
-        Ok(self
-            .db
+        self.db
             .query(
                 "SELECT g.id, g.title, g.release_date::text,
                 ARRAY(SELECT genre.name FROM game_genre gg JOIN genre ON genre.id = gg.genre_id
-                      WHERE gg.game_id = g.id ORDER BY genre.name)
+                      WHERE gg.game_id = g.id ORDER BY genre.name) AS genres
              FROM game g ORDER BY g.id",
                 &[],
             )?
             .into_iter()
-            .map(|row| Game {
-                id: row.get(0),
-                title: row.get(1),
-                release_date: row.get(2),
-                genres: row.get(3),
-            })
-            .collect())
+            .map(|row| GameView::try_from(row).map(Game::from))
+            .collect()
     }
 
     fn add_genre(&mut self, genre: NewGenre) -> Result<i64, AppError> {
-        let name = genre.into_name();
+        let GenreValues { name } = genre.into();
         Ok(self
             .db
             .query_one(
@@ -104,18 +98,15 @@ impl Storage for PostgresStorage {
     }
 
     fn genres(&mut self) -> Result<Vec<Genre>, AppError> {
-        Ok(self
-            .db
+        self.db
             .query("SELECT id, name FROM genre ORDER BY id", &[])?
             .into_iter()
-            .map(|row| Genre {
-                id: row.get(0),
-                name: row.get(1),
-            })
-            .collect())
+            .map(|row| StoredGenre::try_from(row).map(Genre::from))
+            .collect()
     }
 
     fn tag_game(&mut self, tag: GameGenre) -> Result<(), AppError> {
+        let tag = StoredGameGenre::from(tag);
         self.db.execute(
             "INSERT INTO game_genre (game_id, genre_id) VALUES ($1, $2)",
             &[&tag.game_id, &tag.genre_id],
@@ -124,18 +115,14 @@ impl Storage for PostgresStorage {
     }
 
     fn game_genres(&mut self) -> Result<Vec<GameGenre>, AppError> {
-        Ok(self
-            .db
+        self.db
             .query(
                 "SELECT game_id, genre_id FROM game_genre ORDER BY game_id, genre_id",
                 &[],
             )?
             .into_iter()
-            .map(|row| GameGenre {
-                game_id: row.get(0),
-                genre_id: row.get(1),
-            })
-            .collect())
+            .map(|row| StoredGameGenre::try_from(row).map(GameGenre::from))
+            .collect()
     }
 
     fn add_to_library(
@@ -144,8 +131,11 @@ impl Storage for PostgresStorage {
         game_id: i64,
         progress: Progress,
     ) -> Result<(), AppError> {
-        let (status, playtime_minutes) = progress.into_parts();
-        let status = status.to_string();
+        let ProgressValues {
+            status,
+            playtime_minutes,
+        } = progress.into();
+        let status = status.as_str();
         self.db.execute(
             "INSERT INTO player_game (player_id, game_id, status, playtime_minutes) VALUES ($1, $2, $3, $4)",
             &[&player_id, &game_id, &status, &playtime_minutes],
@@ -165,23 +155,16 @@ impl Storage for PostgresStorage {
 
     fn library(&mut self, player_id: i64) -> Result<Vec<PlayerGame>, AppError> {
         self.require_player(player_id)?;
-        Ok(self.db
+        self.db
             .query(
-                "SELECT g.id, g.title, pg.status, pg.playtime_minutes, pg.player_id, pg.added_at::text
+                "SELECT pg.player_id, pg.game_id, g.title, pg.status, pg.playtime_minutes, pg.added_at::text
              FROM player_game pg JOIN game g ON g.id = pg.game_id
              WHERE pg.player_id = $1 ORDER BY g.id",
                 &[&player_id],
             )?
             .into_iter()
-            .map(|row| PlayerGame {
-                game_id: row.get(0),
-                title: row.get(1),
-                status: row.get(2),
-                playtime_minutes: row.get(3),
-                player_id: row.get(4),
-                added_at: row.get(5),
-            })
-            .collect())
+            .map(|row| PlayerGameView::try_from(row).map(PlayerGame::from))
+            .collect()
     }
 
     fn set_progress(
@@ -190,8 +173,11 @@ impl Storage for PostgresStorage {
         game_id: i64,
         progress: Progress,
     ) -> Result<(), AppError> {
-        let (status, playtime_minutes) = progress.into_parts();
-        let status = status.to_string();
+        let ProgressValues {
+            status,
+            playtime_minutes,
+        } = progress.into();
+        let status = status.as_str();
         if self.db.execute(
             "UPDATE player_game SET status = $3, playtime_minutes = $4 WHERE player_id = $1 AND game_id = $2",
             &[&player_id, &game_id, &status, &playtime_minutes],
@@ -206,7 +192,11 @@ impl Storage for PostgresStorage {
         game_id: i64,
         achievement: NewAchievement,
     ) -> Result<i64, AppError> {
-        let (name, description, points) = achievement.into_parts();
+        let AchievementValues {
+            name,
+            description,
+            points,
+        } = achievement.into();
         Ok(self.db.query_one(
             "INSERT INTO achievement (game_id, name, description, points) VALUES ($1, $2, $3, $4) RETURNING id",
             &[&game_id, &name, &description, &points],
@@ -221,11 +211,9 @@ impl Storage for PostgresStorage {
         {
             return Err(AppError::NotFound("Game not found. Use games to list IDs."));
         }
-        Ok(self.db.query(
+        self.db.query(
             "SELECT id, name, description, points, game_id FROM achievement WHERE game_id = $1 ORDER BY id", &[&game_id],
-        )?.into_iter().map(|row| Achievement {
-            id: row.get(0), name: row.get(1), description: row.get(2), points: row.get(3), game_id: row.get(4),
-        }).collect())
+        )?.into_iter().map(|row| StoredAchievement::try_from(row).map(Achievement::from)).collect()
     }
 
     fn achievement(&mut self, achievement_id: i64) -> Result<Achievement, AppError> {
@@ -238,16 +226,11 @@ impl Storage for PostgresStorage {
             .ok_or(AppError::NotFound(
                 "Achievement not found. Use achievements to list IDs.",
             ))?;
-        Ok(Achievement {
-            id: row.get(0),
-            game_id: row.get(1),
-            name: row.get(2),
-            description: row.get(3),
-            points: row.get(4),
-        })
+        Ok(Achievement::from(StoredAchievement::try_from(row)?))
     }
 
     fn unlock(&mut self, player_id: i64, achievement: Achievement) -> Result<(), AppError> {
+        let achievement = StoredAchievement::from(achievement);
         self.db.execute(
             "INSERT INTO player_achievement (player_id, achievement_id, game_id) VALUES ($1, $2, $3)",
             &[&player_id, &achievement.id, &achievement.game_id],
@@ -257,24 +240,16 @@ impl Storage for PostgresStorage {
 
     fn unlocked(&mut self, player_id: i64) -> Result<Vec<PlayerAchievement>, AppError> {
         self.require_player(player_id)?;
-        Ok(self.db
+        self.db
             .query(
-                "SELECT a.id, g.title, a.name, a.points, pa.unlocked_at::text, pa.player_id, pa.game_id
+                "SELECT a.id AS achievement_id, g.title AS game_title, a.name, a.points, pa.unlocked_at::text, pa.player_id, pa.game_id
              FROM player_achievement pa JOIN achievement a ON a.id = pa.achievement_id
              JOIN game g ON g.id = a.game_id WHERE pa.player_id = $1 ORDER BY a.id",
                 &[&player_id],
             )?
             .into_iter()
-            .map(|row| PlayerAchievement {
-                achievement_id: row.get(0),
-                game_title: row.get(1),
-                name: row.get(2),
-                points: row.get(3),
-                unlocked_at: row.get(4),
-                player_id: row.get(5),
-                game_id: row.get(6),
-            })
-            .collect())
+            .map(|row| PlayerAchievementView::try_from(row).map(PlayerAchievement::from))
+            .collect()
     }
 }
 

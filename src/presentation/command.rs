@@ -1,9 +1,8 @@
 use clap::Subcommand;
 
-use crate::{
-    app_error::AppError,
-    domain::{Request, Response, Status, Storage},
-};
+use crate::{app_error::AppError, service::Service};
+
+use super::{models::Response, status::Status};
 
 #[derive(Subcommand)]
 pub enum Command {
@@ -53,59 +52,7 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn execute(self, storage: &mut impl Storage) -> Result<(), AppError> {
-        let request = match self {
-            Self::AllItems => Request::AllItems,
-            Self::AddPlayer { username, email } => Request::AddPlayer { username, email },
-            Self::Players => Request::Players,
-            Self::AddGame {
-                title,
-                release_date,
-            } => Request::AddGame {
-                title,
-                release_date,
-            },
-            Self::Games => Request::Games,
-            Self::AddGenre { name } => Request::AddGenre { name },
-            Self::Genres => Request::Genres,
-            Self::TagGame { game_id, genre_id } => Request::TagGame { game_id, genre_id },
-            Self::AddToLibrary { player_id, game_id } => {
-                Request::AddToLibrary { player_id, game_id }
-            }
-            Self::Library { player_id } => Request::Library { player_id },
-            Self::SetProgress {
-                player_id,
-                game_id,
-                status,
-                playtime_minutes,
-            } => Request::SetProgress {
-                player_id,
-                game_id,
-                status,
-                playtime_minutes,
-            },
-            Self::AddAchievement {
-                game_id,
-                name,
-                description,
-                points,
-            } => Request::AddAchievement {
-                game_id,
-                name,
-                description,
-                points,
-            },
-            Self::Achievements { game_id } => Request::Achievements { game_id },
-            Self::Unlock {
-                player_id,
-                achievement_id,
-            } => Request::Unlock {
-                player_id,
-                achievement_id,
-            },
-            Self::Unlocked { player_id } => Request::Unlocked { player_id },
-        };
-
+    pub fn execute(self, service: &mut impl Service) -> Result<(), AppError> {
         // Use the same tables for individual lists and the combined report.
         fn print_response(response: Response) {
             match response {
@@ -140,10 +87,7 @@ impl Command {
                     for game in games {
                         println!(
                             "{}\t{}\t{}\t{}",
-                            game.id,
-                            game.title,
-                            game.release_date,
-                            game.genres.join(", ")
+                            game.id, game.title, game.release_date, game.genres
                         );
                     }
                 }
@@ -201,7 +145,7 @@ impl Command {
                 }
             }
         }
-        print_response(request.execute(storage)?);
+        print_response(service.execute(self.into())?.into());
         Ok(())
     }
 }
