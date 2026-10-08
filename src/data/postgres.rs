@@ -1,9 +1,10 @@
 use postgres::{Client, NoTls, error::SqlState};
 
-use super::Storage;
 use crate::{
-    achievement::Achievement, app_error::AppError, game::Game, game_genre::GameGenre, genre::Genre,
-    player::Player, player_achievement::PlayerAchievement, player_game::PlayerGame, status::Status,
+    app_error::AppError,
+    domain::{
+        Achievement, Game, GameGenre, Genre, Player, PlayerAchievement, PlayerGame, Status, Storage,
+    },
 };
 
 pub struct PostgresStorage {

@@ -1,6 +1,9 @@
 use clap::Subcommand;
 
-use crate::{app_error::AppError, game_genre::GameGenre, status::Status, storage::Storage};
+use crate::{
+    app_error::AppError,
+    domain::{GameGenre, Status, Storage},
+};
 
 #[derive(Subcommand)]
 pub enum Command {

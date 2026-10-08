@@ -1,15 +1,7 @@
-mod achievement;
 mod app_error;
-mod cli;
-mod command;
-mod game;
-mod game_genre;
-mod genre;
-mod player;
-mod player_achievement;
-mod player_game;
-mod status;
-mod storage;
+mod data;
+mod domain;
+mod presentation;
 
 use std::{env, error::Error, process::ExitCode};
 
@@ -17,8 +9,8 @@ use clap::Parser;
 
 use crate::{
     app_error::AppError,
-    cli::{Backend, Cli},
-    storage::{JsonStorage, PostgresStorage},
+    data::{JsonStorage, PostgresStorage},
+    presentation::{Backend, Cli},
 };
 
 fn main() -> ExitCode {

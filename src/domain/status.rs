@@ -1,8 +1,4 @@
-use clap::ValueEnum;
-
-#[derive(Clone, Copy, ValueEnum, serde::Deserialize, serde::Serialize)]
-#[value(rename_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
+#[derive(Clone, Copy)]
 pub enum Status {
     NotStarted,
     Playing,

@@ -1,13 +1,6 @@
-mod json;
-mod postgres;
+use crate::app_error::AppError;
 
-pub use json::JsonStorage;
-pub use postgres::PostgresStorage;
-
-use crate::{
-    achievement::Achievement, app_error::AppError, game::Game, game_genre::GameGenre, genre::Genre,
-    player::Player, player_achievement::PlayerAchievement, player_game::PlayerGame, status::Status,
-};
+use super::{Achievement, Game, GameGenre, Genre, Player, PlayerAchievement, PlayerGame, Status};
 
 pub trait Storage {
     fn add_player(&mut self, username: &str, email: &str) -> Result<i64, AppError>;

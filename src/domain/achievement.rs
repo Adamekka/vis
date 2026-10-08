@@ -1,5 +1,4 @@
-#[derive(Clone, serde::Deserialize, serde::Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone)]
 pub struct Achievement {
     pub id: i64,
     pub game_id: i64,

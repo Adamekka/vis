@@ -8,11 +8,11 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    achievement::Achievement, app_error::AppError, game::Game, game_genre::GameGenre, genre::Genre,
-    player::Player, player_achievement::PlayerAchievement, player_game::PlayerGame, status::Status,
+    app_error::AppError,
+    domain::{
+        Achievement, Game, GameGenre, Genre, Player, PlayerAchievement, PlayerGame, Status, Storage,
+    },
 };
-
-use super::Storage;
 
 pub struct JsonStorage {
     path: PathBuf,
@@ -22,17 +22,25 @@ pub struct JsonStorage {
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Snapshot {
-    players: Vec<Player>,
+    players: Vec<StoredPlayer>,
     games: Vec<StoredGame>,
-    genres: Vec<Genre>,
-    game_genres: Vec<GameGenre>,
+    genres: Vec<StoredGenre>,
+    game_genres: Vec<StoredGameGenre>,
     player_games: Vec<StoredPlayerGame>,
-    achievements: Vec<Achievement>,
+    achievements: Vec<StoredAchievement>,
     player_achievements: Vec<StoredPlayerAchievement>,
 }
 
 // Persist the normalized records. Titles, genre names, and achievement details in list
 // results are joined at read time so the file never contains conflicting copies of them.
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct StoredPlayer {
+    id: i64,
+    username: String,
+    email: String,
+}
+
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct StoredGame {
@@ -43,12 +51,47 @@ struct StoredGame {
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
+struct StoredGenre {
+    id: i64,
+    name: String,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct StoredGameGenre {
+    game_id: i64,
+    genre_id: i64,
+}
+
+// Serde's remote derive keeps the JSON representation out of the domain enum.
+#[derive(Deserialize, Serialize)]
+#[serde(remote = "Status", rename_all = "snake_case")]
+enum StoredStatus {
+    NotStarted,
+    Playing,
+    Completed,
+    Abandoned,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 struct StoredPlayerGame {
     player_id: i64,
     game_id: i64,
+    #[serde(with = "StoredStatus")]
     status: Status,
     playtime_minutes: i32,
     added_at: String,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct StoredAchievement {
+    id: i64,
+    game_id: i64,
+    name: String,
+    description: String,
+    points: i32,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -225,7 +268,7 @@ impl Storage for JsonStorage {
     fn add_player(&mut self, username: &str, email: &str) -> Result<i64, AppError> {
         self.update(|data| {
             let id = next_id(data.players.iter().map(|player| player.id))?;
-            data.players.push(Player {
+            data.players.push(StoredPlayer {
                 id,
                 username: username.to_owned(),
                 email: email.to_owned(),
@@ -235,7 +278,16 @@ impl Storage for JsonStorage {
     }
 
     fn players(&mut self) -> Result<Vec<Player>, AppError> {
-        let mut players = self.data.players.clone();
+        let mut players: Vec<_> = self
+            .data
+            .players
+            .iter()
+            .map(|player| Player {
+                id: player.id,
+                username: player.username.clone(),
+                email: player.email.clone(),
+            })
+            .collect();
         players.sort_by_key(|player| player.id);
         Ok(players)
     }
@@ -289,7 +341,7 @@ impl Storage for JsonStorage {
     fn add_genre(&mut self, name: &str) -> Result<i64, AppError> {
         self.update(|data| {
             let id = next_id(data.genres.iter().map(|genre| genre.id))?;
-            data.genres.push(Genre {
+            data.genres.push(StoredGenre {
                 id,
                 name: name.to_owned(),
             });
@@ -298,14 +350,25 @@ impl Storage for JsonStorage {
     }
 
     fn genres(&mut self) -> Result<Vec<Genre>, AppError> {
-        let mut genres = self.data.genres.clone();
+        let mut genres: Vec<_> = self
+            .data
+            .genres
+            .iter()
+            .map(|genre| Genre {
+                id: genre.id,
+                name: genre.name.clone(),
+            })
+            .collect();
         genres.sort_by_key(|genre| genre.id);
         Ok(genres)
     }
 
     fn tag_game(&mut self, tag: GameGenre) -> Result<(), AppError> {
         self.update(|data| {
-            data.game_genres.push(tag);
+            data.game_genres.push(StoredGameGenre {
+                game_id: tag.game_id,
+                genre_id: tag.genre_id,
+            });
             Ok(())
         })
     }
@@ -376,7 +439,7 @@ impl Storage for JsonStorage {
     ) -> Result<i64, AppError> {
         self.update(|data| {
             let id = next_id(data.achievements.iter().map(|achievement| achievement.id))?;
-            data.achievements.push(Achievement {
+            data.achievements.push(StoredAchievement {
                 id,
                 game_id,
                 name: name.to_owned(),
@@ -396,7 +459,13 @@ impl Storage for JsonStorage {
             .achievements
             .iter()
             .filter(|achievement| achievement.game_id == game_id)
-            .cloned()
+            .map(|achievement| Achievement {
+                id: achievement.id,
+                game_id: achievement.game_id,
+                name: achievement.name.clone(),
+                description: achievement.description.clone(),
+                points: achievement.points,
+            })
             .collect();
         achievements.sort_by_key(|achievement| achievement.id);
         Ok(achievements)

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::{Parser, ValueEnum};
 
-use crate::command::Command;
+use super::command::Command;
 
 #[derive(Parser)]
 #[command(version, about = "Manage a game library")]
