@@ -1,4 +1,4 @@
-//! Output models hold display-ready values for the command-line tables.
+//! Output models hold display-ready values for the CLI and native window.
 
 pub enum Response {
     AllItems(AllItems),

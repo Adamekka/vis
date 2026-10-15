@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
-use clap::{Parser, ValueEnum};
+use clap::{Parser, Subcommand, ValueEnum};
+
+use crate::{app_error::AppError, service::Service};
 
 use super::command::Command;
 
@@ -12,7 +14,24 @@ pub struct Cli {
     #[arg(long, required_if_eq("storage", "json"), global = true)]
     pub file: Option<PathBuf>,
     #[command(subcommand)]
-    pub command: Command,
+    pub command: Launch,
+}
+
+#[derive(Subcommand)]
+pub enum Launch {
+    /// Open the native game library window
+    Gui,
+    #[command(flatten)]
+    Command(Command),
+}
+
+impl Launch {
+    pub fn execute(self, mut service: impl Service + 'static) -> Result<(), AppError> {
+        match self {
+            Self::Gui => super::gui::run(service),
+            Self::Command(command) => command.execute(&mut service),
+        }
+    }
 }
 
 #[derive(Clone, Copy, ValueEnum)]

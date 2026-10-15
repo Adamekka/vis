@@ -45,13 +45,13 @@ fn run(cli: Cli) -> Result<(), AppError> {
                 ));
             }
             let storage = PostgresStorage::connect(&database_url)?;
-            cli.command.execute(&mut LibraryService::new(storage))
+            cli.command.execute(LibraryService::new(storage))
         }
         Backend::Json => {
             // Clap requires a path in JSON mode, so absence is a parser invariant violation.
             let path = cli.file.expect("clap requires --file for JSON storage");
             let storage = JsonStorage::open(&path)?;
-            cli.command.execute(&mut LibraryService::new(storage))
+            cli.command.execute(LibraryService::new(storage))
         }
     }
 }
