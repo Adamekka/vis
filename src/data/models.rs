@@ -104,6 +104,17 @@ pub struct GameView {
 pub struct PlayerGameView {
     pub record: StoredPlayerGame,
     pub title: String,
+    pub achievements: Vec<LibraryAchievementView>,
+}
+
+pub struct LibraryAchievementView {
+    pub record: StoredAchievement,
+    pub unlocked: bool,
+}
+
+pub struct PlayerLibraryView {
+    pub player: StoredPlayer,
+    pub entries: Vec<PlayerGameView>,
 }
 
 pub struct PlayerAchievementView {

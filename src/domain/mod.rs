@@ -3,11 +3,13 @@ mod all_items;
 mod game;
 mod game_genre;
 mod genre;
+mod library_achievement;
 mod mapper;
 mod operation;
 mod player;
 mod player_achievement;
 mod player_game;
+mod player_library;
 mod status;
 mod storage;
 
@@ -16,10 +18,12 @@ pub use all_items::AllItems;
 pub use game::{Game, NewGame};
 pub use game_genre::GameGenre;
 pub use genre::{Genre, NewGenre};
+pub use library_achievement::LibraryAchievement;
 pub use operation::{Operation, Outcome};
 pub use player::{NewPlayer, Player};
 pub use player_achievement::PlayerAchievement;
 pub use player_game::{PlayerGame, Progress};
+pub use player_library::PlayerLibrary;
 pub use status::Status;
 pub use storage::Storage;
 

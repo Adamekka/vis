@@ -2,7 +2,7 @@ use crate::app_error::AppError;
 
 use super::{
     Achievement, Game, GameGenre, Genre, NewAchievement, NewGame, NewGenre, NewPlayer, Player,
-    PlayerAchievement, PlayerGame, Progress,
+    PlayerAchievement, PlayerLibrary, Progress,
 };
 
 pub trait Storage {
@@ -21,7 +21,7 @@ pub trait Storage {
         progress: Progress,
     ) -> Result<(), AppError>;
     fn owns_game(&mut self, player_id: i64, game_id: i64) -> Result<bool, AppError>;
-    fn library(&mut self, player_id: i64) -> Result<Vec<PlayerGame>, AppError>;
+    fn library(&mut self, player_id: i64) -> Result<PlayerLibrary, AppError>;
     fn set_progress(
         &mut self,
         player_id: i64,

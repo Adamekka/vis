@@ -24,7 +24,7 @@ pub enum Command {
     TagGame { game_id: i64, genre_id: i64 },
     /// Add a game to a player's library with zero playtime and status not_started
     AddToLibrary { player_id: i64, game_id: i64 },
-    /// List a player's games and progress
+    /// Show a player's details, games, progress, and locked or unlocked achievements
     Library { player_id: i64 },
     /// Set the status and total playtime of a game in a player's library
     SetProgress {

@@ -1,7 +1,23 @@
-use super::models::Response;
+use super::models::{PlayerGame, Response};
 
 impl Response {
     pub fn text(self) -> String {
+        fn library_entries(entries: &[PlayerGame]) -> String {
+            let mut text = "Player ID\tGame ID\tTitle\tStatus\tMinutes\tAdded at\n".to_owned();
+            for entry in entries {
+                text.push_str(&format!(
+                    "{}\t{}\t{}\t{}\t{}\t{}\n",
+                    entry.player_id,
+                    entry.game_id,
+                    entry.title,
+                    entry.status,
+                    entry.playtime_minutes,
+                    entry.added_at
+                ));
+            }
+            text
+        }
+
         match self {
             Self::AllItems(items) => format!(
                 "Players\n{}\nGames\n{}\nGenres\n{}\nGenre assignments\nGame ID\tGenre ID\n{}\nLibrary entries\n{}\nAchievements\n{}\nUnlocked achievements\n{}",
@@ -13,7 +29,7 @@ impl Response {
                     .into_iter()
                     .map(|tag| format!("{}\t{}\n", tag.game_id, tag.genre_id))
                     .collect::<String>(),
-                Self::Library(items.library).text(),
+                library_entries(&items.library),
                 Self::Achievements(items.achievements).text(),
                 Self::Unlocked(items.unlocked).text(),
             ),
@@ -48,17 +64,33 @@ impl Response {
             Self::GenreAssigned => "Genre assigned.\n".to_owned(),
             Self::AddedToLibrary => "Game added to library.\n".to_owned(),
             Self::Library(library) => {
-                let mut text = "Player ID\tGame ID\tTitle\tStatus\tMinutes\tAdded at\n".to_owned();
-                for entry in library {
-                    text.push_str(&format!(
-                        "{}\t{}\t{}\t{}\t{}\t{}\n",
-                        entry.player_id,
-                        entry.game_id,
-                        entry.title,
-                        entry.status,
-                        entry.playtime_minutes,
-                        entry.added_at
-                    ));
+                let mut text = format!(
+                    "Player\n{}\nGames\n",
+                    Self::Players(vec![library.player]).text(),
+                );
+                if library.entries.is_empty() {
+                    text.push_str(&library_entries(&[]));
+                    text.push_str("No games in this player's library.\n");
+                }
+                for entry in &library.entries {
+                    // Repeat game labels because the achievement table separates consecutive games.
+                    text.push_str(&library_entries(std::slice::from_ref(entry)));
+                    if entry.achievements.is_empty() {
+                        text.push_str("  No achievements for this game.\n");
+                    } else {
+                        text.push_str("  Achievements\n  ID\tName\tDescription\tPoints\tStatus\n");
+                        for item in &entry.achievements {
+                            let achievement = &item.achievement;
+                            text.push_str(&format!(
+                                "  {}\t{}\t{}\t{}\t{}\n",
+                                achievement.id,
+                                achievement.name,
+                                achievement.description,
+                                achievement.points,
+                                item.status,
+                            ));
+                        }
+                    }
                 }
                 text
             }

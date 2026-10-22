@@ -140,7 +140,9 @@ fn exercise_workflow(run: impl Fn(&[&str], bool) -> String) -> (i64, i64, i64) {
     assert!(run(&["players"], true).contains("alex\talex@example.test"));
     assert_eq!(
         run(&["library", &player], true),
-        "Player ID\tGame ID\tTitle\tStatus\tMinutes\tAdded at"
+        format!(
+            "Player\nID\tUsername\tEmail\n{player}\talex\talex@example.test\n\nGames\nPlayer ID\tGame ID\tTitle\tStatus\tMinutes\tAdded at\nNo games in this player's library."
+        )
     );
     assert_eq!(
         run(&["unlocked", &player], true),
@@ -193,6 +195,16 @@ fn exercise_workflow(run: impl Fn(&[&str], bool) -> String) -> (i64, i64, i64) {
         ],
         true,
     );
+    let locked_achievement = run(
+        &[
+            "add-achievement",
+            &game,
+            "Explorer",
+            "Visit every area",
+            "25",
+        ],
+        true,
+    );
     assert!(
         run(
             &["add-achievement", &game, "First step", "Same name", "10"],
@@ -204,7 +216,19 @@ fn exercise_workflow(run: impl Fn(&[&str], bool) -> String) -> (i64, i64, i64) {
     assert!(run(&["unlock", &player, &achievement], false).contains("not in the player's library"));
     run(&["add-to-library", &player, &game], true);
     run(&["add-to-library", &other_player, &game], true);
-    assert!(run(&["library", &player], true).contains("not_started\t0"));
+    let library = run(&["library", &player], true);
+    assert!(library.starts_with(&format!(
+        "Player\nID\tUsername\tEmail\n{player}\talex\talex@example.test\n\nGames\n"
+    )));
+    assert!(library.contains(&format!("{player}\t{game}\t{title}\tnot_started\t0\t")));
+    assert!(library.contains(&format!(
+        "  {achievement}\tFirst step\tFinish the tutorial\t10\tLocked"
+    )));
+    assert!(library.contains(&format!(
+        "  {locked_achievement}\tExplorer\tVisit every area\t25\tLocked"
+    )));
+    assert!(!library.contains("Finish the game"));
+    assert!(!library.contains("No games"));
     assert!(run(&["add-to-library", &player, &game], false).contains("already exists"));
     // Every status must survive the CLI, service, domain, and storage mappings.
     for status in ["completed", "abandoned", "not_started", "playing"] {
@@ -238,16 +262,44 @@ fn exercise_workflow(run: impl Fn(&[&str], bool) -> String) -> (i64, i64, i64) {
     );
 
     run(&["unlock", &player, &achievement], true);
+    let library = run(&["library", &player], true);
+    assert!(library.contains(&format!(
+        "  {achievement}\tFirst step\tFinish the tutorial\t10\tUnlocked"
+    )));
+    assert!(library.contains(&format!(
+        "  {locked_achievement}\tExplorer\tVisit every area\t25\tLocked"
+    )));
+    assert!(run(&["library", &other_player], true).contains(&format!(
+        "  {achievement}\tFirst step\tFinish the tutorial\t10\tLocked"
+    )));
     assert!(run(&["unlocked", &player], true).contains("First step\t10\t"));
     assert!(!run(&["unlocked", &other_player], true).contains("First step"));
     assert!(run(&["unlock", &player, &achievement], false).contains("already exists"));
     run(&["unlock", &player, &other_achievement], false);
     run(&["unlock", &player, "999999"], false);
-    run(&["library", "999999"], false);
+    assert!(run(&["library", "999999"], false).contains("Player not found"));
     run(&["unlocked", "999999"], false);
     run(&["achievements", "999999"], false);
     run(&["add-to-library", &player, "999999"], false);
     run(&["add-to-library", "999999", &game], false);
+
+    let untagged_game = run(&["add-game", "Untagged game", "2023-04-05"], true);
+    run(&["add-to-library", &player, &untagged_game], true);
+    let library = run(&["library", &player], true);
+    let rows: Vec<_> = library
+        .split_once("\nGames\n")
+        .unwrap()
+        .1
+        .lines()
+        .filter(|line| line.starts_with(&format!("{player}\t")))
+        .collect();
+    assert_eq!(rows.len(), 2);
+    assert!(rows[0].starts_with(&format!("{player}\t{game}\t{title}\tplaying\t120\t")));
+    assert!(rows[1].starts_with(&format!(
+        "{player}\t{untagged_game}\tUntagged game\tnot_started\t0\t"
+    )));
+    assert!(!run(&["library", &other_player], true).contains("Untagged game"));
+    assert!(library.contains("  No achievements for this game."));
 
     // Records without relationships must also appear in the combined report.
     run(&["add-player", "lee", "lee@example.test"], true);
@@ -271,8 +323,11 @@ fn exercise_workflow(run: impl Fn(&[&str], bool) -> String) -> (i64, i64, i64) {
     for player_id in [&player, &other_player] {
         library_rows.extend(
             run(&["library", player_id], true)
+                .split_once("\nGames\n")
+                .unwrap()
+                .1
                 .lines()
-                .skip(1)
+                .filter(|line| line.starts_with(&format!("{player_id}\t")))
                 .map(str::to_owned),
         );
         unlocked_rows.extend(
@@ -338,13 +393,13 @@ fn json_workflow() {
             "{args:?}\n{stdout}\n{stderr}"
         );
         if success {
-            if args == ["all-items"]
+            if (args == ["all-items"] || args[0] == "library")
                 && let Some(before) = before
             {
                 assert_eq!(
                     std::fs::read(&path).unwrap(),
                     before,
-                    "Listing all items changed the library"
+                    "Listing data changed the library"
                 );
             }
             // Preserve trailing tabs because they represent empty final columns.

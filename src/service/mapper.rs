@@ -130,6 +130,25 @@ impl From<domain::PlayerGame> for models::PlayerGame {
             status: value.status.into(),
             playtime_minutes: value.playtime_minutes,
             added_at: value.added_at,
+            achievements: value.achievements.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<domain::LibraryAchievement> for models::LibraryAchievement {
+    fn from(value: domain::LibraryAchievement) -> Self {
+        Self {
+            achievement: value.achievement.into(),
+            unlocked: value.unlocked,
+        }
+    }
+}
+
+impl From<domain::PlayerLibrary> for models::PlayerLibrary {
+    fn from(value: domain::PlayerLibrary) -> Self {
+        Self {
+            player: value.player.into(),
+            entries: value.entries.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -190,9 +209,7 @@ impl From<domain::Outcome> for models::Response {
             }
             domain::Outcome::GenreAssigned => Self::GenreAssigned,
             domain::Outcome::AddedToLibrary => Self::AddedToLibrary,
-            domain::Outcome::Library(value) => {
-                Self::Library(value.into_iter().map(Into::into).collect())
-            }
+            domain::Outcome::Library(value) => Self::Library(value.into()),
             domain::Outcome::ProgressUpdated => Self::ProgressUpdated,
             domain::Outcome::Achievements(value) => {
                 Self::Achievements(value.into_iter().map(Into::into).collect())

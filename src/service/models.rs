@@ -59,7 +59,7 @@ pub enum Response {
     Genres(Vec<Genre>),
     GenreAssigned,
     AddedToLibrary,
-    Library(Vec<PlayerGame>),
+    Library(PlayerLibrary),
     ProgressUpdated,
     Achievements(Vec<Achievement>),
     AchievementUnlocked,
@@ -104,6 +104,17 @@ pub struct PlayerGame {
     pub status: Status,
     pub playtime_minutes: i32,
     pub added_at: String,
+    pub achievements: Vec<LibraryAchievement>,
+}
+
+pub struct LibraryAchievement {
+    pub achievement: Achievement,
+    pub unlocked: bool,
+}
+
+pub struct PlayerLibrary {
+    pub player: Player,
+    pub entries: Vec<PlayerGame>,
 }
 
 pub struct Achievement {

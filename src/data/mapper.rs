@@ -64,6 +64,25 @@ impl From<PlayerGameView> for domain::PlayerGame {
             playtime_minutes: value.record.playtime_minutes,
             added_at: value.record.added_at,
             title: value.title,
+            achievements: value.achievements.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<LibraryAchievementView> for domain::LibraryAchievement {
+    fn from(value: LibraryAchievementView) -> Self {
+        Self {
+            achievement: value.record.into(),
+            unlocked: value.unlocked,
+        }
+    }
+}
+
+impl From<PlayerLibraryView> for domain::PlayerLibrary {
+    fn from(value: PlayerLibraryView) -> Self {
+        Self {
+            player: value.player.into(),
+            entries: value.entries.into_iter().map(Into::into).collect(),
         }
     }
 }

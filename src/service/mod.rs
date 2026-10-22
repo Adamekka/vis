@@ -35,7 +35,7 @@ impl<S: Storage> Service for LibraryService<S> {
                 let mut achievements = Vec::new();
                 let mut unlocked = Vec::new();
                 for player in &players {
-                    library.extend(storage.library(player.id)?);
+                    library.extend(storage.library(player.id)?.entries);
                     unlocked.extend(storage.unlocked(player.id)?);
                 }
                 for game in &games {

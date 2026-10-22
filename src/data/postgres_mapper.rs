@@ -69,10 +69,10 @@ impl TryFrom<Row> for GameView {
     }
 }
 
-impl TryFrom<Row> for PlayerGameView {
+impl TryFrom<&Row> for PlayerGameView {
     type Error = AppError;
 
-    fn try_from(row: Row) -> Result<Self, Self::Error> {
+    fn try_from(row: &Row) -> Result<Self, Self::Error> {
         Ok(Self {
             record: StoredPlayerGame {
                 player_id: row.try_get("player_id")?,
@@ -82,7 +82,51 @@ impl TryFrom<Row> for PlayerGameView {
                 added_at: row.try_get("added_at")?,
             },
             title: row.try_get("title")?,
+            // The library mapper collects achievements from the remaining joined rows.
+            achievements: Vec::new(),
         })
+    }
+}
+
+impl TryFrom<Vec<Row>> for PlayerLibraryView {
+    type Error = AppError;
+
+    fn try_from(rows: Vec<Row>) -> Result<Self, Self::Error> {
+        let first = rows.first().ok_or(AppError::NotFound(
+            "Player not found. Use players to list IDs.",
+        ))?;
+        let player = StoredPlayer {
+            id: first.try_get("player_id")?,
+            username: first.try_get("username")?,
+            email: first.try_get("email")?,
+        };
+        let mut entries: Vec<PlayerGameView> = Vec::new();
+        for row in rows {
+            // A LEFT JOIN preserves an existing player even when their library is empty.
+            let Some(game_id) = row.try_get::<_, Option<i64>>("game_id")? else {
+                continue;
+            };
+            // ORDER BY game ID keeps each game's achievement rows together without duplicating the game.
+            if entries
+                .last()
+                .is_none_or(|entry| entry.record.game_id != game_id)
+            {
+                entries.push(PlayerGameView::try_from(&row)?);
+            }
+            if row.try_get::<_, Option<i64>>("id")?.is_some() {
+                let unlocked = row.try_get("unlocked")?;
+                let achievement = LibraryAchievementView {
+                    record: StoredAchievement::try_from(row)?,
+                    unlocked,
+                };
+                entries
+                    .last_mut()
+                    .expect("the current game was inserted before its achievements")
+                    .achievements
+                    .push(achievement);
+            }
+        }
+        Ok(Self { player, entries })
     }
 }
 

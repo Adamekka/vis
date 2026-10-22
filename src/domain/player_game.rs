@@ -1,4 +1,4 @@
-use super::Status;
+use super::{LibraryAchievement, Status};
 
 pub struct PlayerGame {
     pub player_id: i64,
@@ -7,6 +7,7 @@ pub struct PlayerGame {
     pub status: Status,
     pub playtime_minutes: i32,
     pub added_at: String,
+    pub achievements: Vec<LibraryAchievement>,
 }
 
 #[derive(Debug)]

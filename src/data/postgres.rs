@@ -4,7 +4,7 @@ use crate::{
     app_error::AppError,
     domain::{
         Achievement, Game, GameGenre, Genre, NewAchievement, NewGame, NewGenre, NewPlayer, Player,
-        PlayerAchievement, PlayerGame, Progress, Storage,
+        PlayerAchievement, PlayerLibrary, Progress, Storage,
     },
 };
 
@@ -153,18 +153,22 @@ impl Storage for PostgresStorage {
             .get(0))
     }
 
-    fn library(&mut self, player_id: i64) -> Result<Vec<PlayerGame>, AppError> {
-        self.require_player(player_id)?;
-        self.db
-            .query(
-                "SELECT pg.player_id, pg.game_id, g.title, pg.status, pg.playtime_minutes, pg.added_at::text
-             FROM player_game pg JOIN game g ON g.id = pg.game_id
-             WHERE pg.player_id = $1 ORDER BY g.id",
-                &[&player_id],
-            )?
-            .into_iter()
-            .map(|row| PlayerGameView::try_from(row).map(PlayerGame::from))
-            .collect()
+    fn library(&mut self, player_id: i64) -> Result<PlayerLibrary, AppError> {
+        // Starting from the player distinguishes an empty library from a missing player in one query.
+        let rows = self.db.query(
+            "SELECT p.id AS player_id, p.username, p.email,
+                    pg.game_id, g.title, pg.status, pg.playtime_minutes, pg.added_at::text,
+                    a.id, a.name, a.description, a.points,
+                    pa.achievement_id IS NOT NULL AS unlocked
+             FROM player p
+             LEFT JOIN player_game pg ON pg.player_id = p.id
+             LEFT JOIN game g ON g.id = pg.game_id
+             LEFT JOIN achievement a ON a.game_id = g.id
+             LEFT JOIN player_achievement pa ON pa.achievement_id = a.id AND pa.player_id = p.id
+             WHERE p.id = $1 ORDER BY pg.game_id, a.id",
+            &[&player_id],
+        )?;
+        Ok(PlayerLibraryView::try_from(rows)?.into())
     }
 
     fn set_progress(

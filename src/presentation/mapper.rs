@@ -125,6 +125,25 @@ impl From<service::PlayerGame> for models::PlayerGame {
             .to_owned(),
             playtime_minutes: value.playtime_minutes,
             added_at: value.added_at,
+            achievements: value.achievements.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<service::LibraryAchievement> for models::LibraryAchievement {
+    fn from(value: service::LibraryAchievement) -> Self {
+        Self {
+            achievement: value.achievement.into(),
+            status: if value.unlocked { "Unlocked" } else { "Locked" },
+        }
+    }
+}
+
+impl From<service::PlayerLibrary> for models::PlayerLibrary {
+    fn from(value: service::PlayerLibrary) -> Self {
+        Self {
+            player: value.player.into(),
+            entries: value.entries.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -185,9 +204,7 @@ impl From<service::Response> for models::Response {
             }
             service::Response::GenreAssigned => Self::GenreAssigned,
             service::Response::AddedToLibrary => Self::AddedToLibrary,
-            service::Response::Library(value) => {
-                Self::Library(value.into_iter().map(Into::into).collect())
-            }
+            service::Response::Library(value) => Self::Library(value.into()),
             service::Response::ProgressUpdated => Self::ProgressUpdated,
             service::Response::Achievements(value) => {
                 Self::Achievements(value.into_iter().map(Into::into).collect())

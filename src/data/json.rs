@@ -13,7 +13,7 @@ use crate::{
     app_error::AppError,
     domain::{
         Achievement, Game, GameGenre, Genre, NewAchievement, NewGame, NewGenre, NewPlayer, Player,
-        PlayerAchievement, PlayerGame, Progress, Storage,
+        PlayerAchievement, PlayerLibrary, Progress, Storage,
     },
 };
 
@@ -324,29 +324,52 @@ impl Storage for JsonStorage {
             .any(|entry| entry.player_id == player_id && entry.game_id == game_id))
     }
 
-    fn library(&mut self, player_id: i64) -> Result<Vec<PlayerGame>, AppError> {
-        self.require_player(player_id)?;
-        let mut library: Vec<_> = self
+    fn library(&mut self, player_id: i64) -> Result<PlayerLibrary, AppError> {
+        let player = self
+            .data
+            .players
+            .iter()
+            .find(|player| player.id == player_id)
+            .ok_or(AppError::NotFound(
+                "Player not found. Use players to list IDs.",
+            ))?
+            .clone();
+        let mut entries: Vec<_> = self
             .data
             .player_games
             .iter()
             .filter(|entry| entry.player_id == player_id)
-            .map(|entry| {
-                PlayerGame::from(PlayerGameView {
-                    record: entry.clone(),
-                    title: self
+            .map(|entry| PlayerGameView {
+                record: entry.clone(),
+                title: self
+                    .data
+                    .games
+                    .iter()
+                    .find(|game| game.id == entry.game_id)
+                    .expect("validated game reference")
+                    .title
+                    .clone(),
+                achievements: {
+                    let mut achievements: Vec<_> = self
                         .data
-                        .games
+                        .achievements
                         .iter()
-                        .find(|game| game.id == entry.game_id)
-                        .expect("validated game reference")
-                        .title
-                        .clone(),
-                })
+                        .filter(|achievement| achievement.game_id == entry.game_id)
+                        .map(|achievement| LibraryAchievementView {
+                            record: achievement.clone(),
+                            unlocked: self.data.player_achievements.iter().any(|unlock| {
+                                unlock.player_id == player_id
+                                    && unlock.achievement_id == achievement.id
+                            }),
+                        })
+                        .collect();
+                    achievements.sort_by_key(|achievement| achievement.record.id);
+                    achievements
+                },
             })
             .collect();
-        library.sort_by_key(|entry| entry.game_id);
-        Ok(library)
+        entries.sort_by_key(|entry| entry.record.game_id);
+        Ok(PlayerLibraryView { player, entries }.into())
     }
 
     fn set_progress(

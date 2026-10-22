@@ -1,6 +1,6 @@
 use super::{
     Achievement, AllItems, Game, GameGenre, Genre, NewAchievement, NewGame, NewGenre, NewPlayer,
-    Player, PlayerAchievement, PlayerGame, Progress,
+    Player, PlayerAchievement, PlayerLibrary, Progress,
 };
 
 pub enum Operation {
@@ -48,7 +48,7 @@ pub enum Outcome {
     Genres(Vec<Genre>),
     GenreAssigned,
     AddedToLibrary,
-    Library(Vec<PlayerGame>),
+    Library(PlayerLibrary),
     ProgressUpdated,
     Achievements(Vec<Achievement>),
     AchievementUnlocked,
