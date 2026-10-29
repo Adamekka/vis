@@ -11,6 +11,13 @@ pub enum Request {
         title: String,
         release_date: String,
     },
+    AddGameToLibrary {
+        player_id: i64,
+        title: String,
+        release_date: String,
+        genre_ids: Vec<i64>,
+        achievements: Vec<NewAchievement>,
+    },
     Games,
     AddGenre {
         name: String,
@@ -54,6 +61,12 @@ pub enum Request {
 pub enum Response {
     AllItems(AllItems),
     Created(i64),
+    GameAddedToLibrary {
+        player_id: i64,
+        game_id: i64,
+        genre_ids: Vec<i64>,
+        achievement_ids: Vec<i64>,
+    },
     Players(Vec<Player>),
     Games(Vec<Game>),
     Genres(Vec<Genre>),
@@ -120,6 +133,12 @@ pub struct PlayerLibrary {
 pub struct Achievement {
     pub id: i64,
     pub game_id: i64,
+    pub name: String,
+    pub description: String,
+    pub points: i32,
+}
+
+pub struct NewAchievement {
     pub name: String,
     pub description: String,
     pub points: i32,

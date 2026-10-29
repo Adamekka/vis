@@ -34,6 +34,14 @@ impl Response {
                 Self::Unlocked(items.unlocked).text(),
             ),
             Self::Created(id) => format!("{id}\n"),
+            Self::GameAddedToLibrary {
+                player_id,
+                game_id,
+                genre_ids,
+                achievement_ids,
+            } => format!(
+                "Game ID: {game_id}\nAssigned genre IDs: {genre_ids:?}\nCreated achievement IDs: {achievement_ids:?}\nGame added to player {player_id}'s library.\n"
+            ),
             Self::Players(players) => {
                 let mut text = "ID\tUsername\tEmail\n".to_owned();
                 for player in players {

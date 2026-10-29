@@ -7,6 +7,7 @@ pub enum AppError {
     AlreadyExists,
     InvalidReference,
     InvalidValue,
+    EmptyGameSetup,
     InvalidFile(&'static str),
     IdExhausted,
     NotFound(&'static str),
@@ -30,6 +31,7 @@ impl fmt::Display for AppError {
             Self::InvalidValue => {
                 "Invalid value. Names, email, and descriptions must not be blank; points and playtime must be nonnegative."
             }
+            Self::EmptyGameSetup => "Choose at least one genre and enter at least one achievement.",
             Self::InvalidFile(reason) => return write!(f, "Invalid library file. {reason}"),
             Self::IdExhausted => "No more IDs are available. Choose another library file.",
             Self::Failure { message, .. } => message,

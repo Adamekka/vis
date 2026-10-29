@@ -4,7 +4,7 @@ use crate::{app_error::AppError, data::JsonStorage};
 
 use super::{
     LibraryService, Service,
-    models::{Request, Status},
+    models::{NewAchievement, Request, Status},
 };
 
 #[test]
@@ -41,6 +41,17 @@ fn invalid_service_requests_are_rejected_before_storage_changes() {
             description: "Finish the tutorial".to_owned(),
             points: -1,
         },
+        Request::AddGameToLibrary {
+            player_id: 1,
+            title: "Game".to_owned(),
+            release_date: "2024-02-29".to_owned(),
+            genre_ids: vec![1],
+            achievements: vec![NewAchievement {
+                name: "First step".to_owned(),
+                description: "Finish the tutorial".to_owned(),
+                points: -1,
+            }],
+        },
     ] {
         assert!(matches!(
             service.execute(request),
@@ -54,6 +65,17 @@ fn invalid_service_requests_are_rejected_before_storage_changes() {
             release_date: "2025-02-29".to_owned()
         }),
         Err(AppError::InvalidDate)
+    ));
+    assert_eq!(fs::read(&path).unwrap(), original);
+    assert!(matches!(
+        service.execute(Request::AddGameToLibrary {
+            player_id: 1,
+            title: "Game".to_owned(),
+            release_date: "2024-02-29".to_owned(),
+            genre_ids: vec![],
+            achievements: vec![],
+        }),
+        Err(AppError::EmptyGameSetup)
     ));
     assert_eq!(fs::read(&path).unwrap(), original);
 }

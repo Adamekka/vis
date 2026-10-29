@@ -12,6 +12,7 @@ fn help_and_configuration_errors() {
     assert!(help.status.success());
     assert!(String::from_utf8_lossy(&help.stdout).contains("add-to-library"));
     assert!(String::from_utf8_lossy(&help.stdout).contains("all-items"));
+    assert!(String::from_utf8_lossy(&help.stdout).contains("add-game-to-library"));
 
     for value in [None, Some(""), Some("   ")] {
         let mut command = Command::new(env!("CARGO_BIN_EXE_vis"));
@@ -359,6 +360,130 @@ fn exercise_workflow(run: impl Fn(&[&str], bool) -> String) -> (i64, i64, i64) {
         unlocked_rows
     );
 
+    let setup = run(
+        &[
+            "add-game-to-library",
+            &player,
+            "Complete game",
+            "2024-02-29",
+            "--genre",
+            &genre,
+            "--genre",
+            &other_genre,
+            "--achievement",
+            "First step",
+            "Finish the tutorial",
+            "10",
+            "--achievement",
+            "Explorer",
+            "Visit every area",
+            "25",
+        ],
+        true,
+    );
+    let setup_game = setup
+        .lines()
+        .next()
+        .unwrap()
+        .strip_prefix("Game ID: ")
+        .unwrap();
+    assert!(setup.contains(&format!("Assigned genre IDs: [{genre}, {other_genre}]")));
+    assert!(setup.contains(&format!("Game added to player {player}'s library.")));
+    assert!(run(&["games"], true).contains("Complete game\t2024-02-29\tAdventure, Puzzle"));
+    let setup_library = run(&["library", &player], true);
+    assert!(setup_library.contains(&format!(
+        "{player}\t{setup_game}\tComplete game\tnot_started\t0\t"
+    )));
+    assert!(setup_library.contains("First step\tFinish the tutorial\t10\tLocked"));
+    assert!(setup_library.contains("Explorer\tVisit every area\t25\tLocked"));
+    assert!(!run(&["library", &other_player], true).contains("Complete game"));
+
+    // Composite writes deliberately persist their completed steps when a later insert fails.
+    for (title, target_player, second_genre, second_name, failed_step, expected_achievements) in [
+        (
+            "Missing genre",
+            player.as_str(),
+            "999999",
+            "Explorer",
+            "assign genre 999999".to_owned(),
+            0,
+        ),
+        (
+            "Duplicate achievement",
+            player.as_str(),
+            other_genre.as_str(),
+            "First step",
+            "create achievement 2".to_owned(),
+            1,
+        ),
+        (
+            "Missing player",
+            "999999",
+            other_genre.as_str(),
+            "Explorer",
+            "add the game to player 999999's library".to_owned(),
+            3,
+        ),
+    ] {
+        let error = run(
+            &[
+                "add-game-to-library",
+                target_player,
+                title,
+                "2024-02-29",
+                "--genre",
+                &genre,
+                "--genre",
+                second_genre,
+                "--achievement",
+                "First step",
+                "Finish the tutorial",
+                "10",
+                "--achievement",
+                second_name,
+                "Visit every area",
+                "25",
+                "--achievement",
+                "Finisher",
+                "Finish the game",
+                "50",
+            ],
+            false,
+        );
+        let games = run(&["games"], true);
+        let row = games
+            .lines()
+            .find(|row| row.contains(&format!("\t{title}\t")))
+            .unwrap();
+        let saved_game = row.split('\t').next().unwrap();
+        assert!(
+            error.contains(&format!("Could not {failed_step}.")),
+            "{error}"
+        );
+        assert!(error.contains(&format!("Game ID {saved_game} remains saved.")));
+        assert!(error.contains("Created achievement IDs:"));
+        assert!(row.ends_with(if expected_achievements == 0 {
+            "Adventure"
+        } else {
+            "Adventure, Puzzle"
+        }));
+        let achievements = run(&["achievements", saved_game], true);
+        assert_eq!(achievements.lines().count() - 1, expected_achievements);
+        assert!(!run(&["library", &player], true).contains(title));
+        // The saved game can be completed through the same standalone operations.
+        run(
+            &[
+                "add-achievement",
+                saved_game,
+                "Extra",
+                "Continue after failure",
+                "5",
+            ],
+            true,
+        );
+        run(&["add-to-library", &player, saved_game], true);
+        assert!(run(&["library", &player], true).contains(title));
+    }
     (
         player.parse().unwrap(),
         game.parse().unwrap(),
@@ -405,11 +530,14 @@ fn json_workflow() {
             // Preserve trailing tabs because they represent empty final columns.
             stdout.trim_end_matches('\n').to_owned()
         } else {
-            assert_eq!(
-                std::fs::read(&path).unwrap(),
-                before.unwrap(),
-                "A rejected command changed the library"
-            );
+            // Only the composite command may retain successful writes before reporting a failure.
+            if args[0] != "add-game-to-library" {
+                assert_eq!(
+                    std::fs::read(&path).unwrap(),
+                    before.unwrap(),
+                    "A rejected command changed the library"
+                );
+            }
             stderr
         }
     });

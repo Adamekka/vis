@@ -3,7 +3,7 @@ pub mod models;
 
 use crate::{
     app_error::AppError,
-    domain::{AllItems, Operation, Outcome, Progress, Status, Storage},
+    domain::{AllItems, GameGenre, Operation, Outcome, Progress, Status, Storage},
 };
 use models::{Request, Response};
 
@@ -19,13 +19,68 @@ impl<S: Storage> LibraryService<S> {
     pub fn new(storage: S) -> Self {
         Self { storage }
     }
-}
 
-impl<S: Storage> Service for LibraryService<S> {
-    fn execute(&mut self, request: Request) -> Result<Response, AppError> {
-        let operation = Operation::try_from(request)?;
+    fn execute_operation(&mut self, operation: Operation) -> Result<Outcome, AppError> {
         let storage = &mut self.storage;
         let outcome = match operation {
+            Operation::AddGameToLibrary {
+                player_id,
+                game,
+                genre_ids,
+                achievements,
+            } => {
+                // Creation operations return a shared outcome enum; another variant is a dispatcher bug.
+                let Outcome::Created(game_id) = self.execute_operation(Operation::AddGame(game))?
+                else {
+                    unreachable!("AddGame must return the created game ID");
+                };
+                let mut assigned_genres = Vec::new();
+                let mut achievement_ids = Vec::new();
+                // Reuse each standalone operation without a transaction so every successful write stays saved.
+                let result = (|| {
+                    for genre_id in genre_ids {
+                        self.execute_operation(Operation::TagGame(GameGenre { game_id, genre_id }))
+                            .map_err(|error| (format!("assign genre {genre_id}"), error))?;
+                        assigned_genres.push(genre_id);
+                    }
+                    for (index, achievement) in achievements.into_iter().enumerate() {
+                        let Outcome::Created(id) = self
+                            .execute_operation(Operation::AddAchievement {
+                                game_id,
+                                achievement,
+                            })
+                            .map_err(|error| {
+                                (format!("create achievement {}", index + 1), error)
+                            })?
+                        else {
+                            unreachable!("AddAchievement must return the created achievement ID");
+                        };
+                        achievement_ids.push(id);
+                    }
+                    self.execute_operation(Operation::AddToLibrary { player_id, game_id })
+                        .map_err(|error| {
+                            (
+                                format!("add the game to player {player_id}'s library"),
+                                error,
+                            )
+                        })?;
+                    Ok::<_, (String, AppError)>(())
+                })();
+                if let Err((step, source)) = result {
+                    return Err(AppError::Failure {
+                        message: format!(
+                            "Could not {step}. {source}\nGame ID {game_id} remains saved. Assigned genre IDs: {assigned_genres:?}. Created achievement IDs: {achievement_ids:?}. The game was not added to the player's library. Use Tag game, Add achievement, and Add to library to continue with these IDs."
+                        ),
+                        source: Box::new(source),
+                    });
+                }
+                Outcome::GameAddedToLibrary {
+                    player_id,
+                    game_id,
+                    genre_ids: assigned_genres,
+                    achievement_ids,
+                }
+            }
             Operation::AllItems => {
                 let players = storage.players()?;
                 let games = storage.games()?;
@@ -99,7 +154,14 @@ impl<S: Storage> Service for LibraryService<S> {
             }
             Operation::Unlocked { player_id } => Outcome::Unlocked(storage.unlocked(player_id)?),
         };
-        Ok(outcome.into())
+        Ok(outcome)
+    }
+}
+
+impl<S: Storage> Service for LibraryService<S> {
+    fn execute(&mut self, request: Request) -> Result<Response, AppError> {
+        self.execute_operation(Operation::try_from(request)?)
+            .map(Into::into)
     }
 }
 

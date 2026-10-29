@@ -18,6 +18,32 @@ impl TryFrom<models::Request> for domain::Operation {
                 title,
                 release_date,
             } => Self::AddGame(domain::NewGame::try_from((title, release_date))?),
+            models::Request::AddGameToLibrary {
+                player_id,
+                title,
+                release_date,
+                genre_ids,
+                achievements,
+            } => {
+                if genre_ids.is_empty() || achievements.is_empty() {
+                    return Err(AppError::EmptyGameSetup);
+                }
+                Self::AddGameToLibrary {
+                    player_id,
+                    game: domain::NewGame::try_from((title, release_date))?,
+                    genre_ids,
+                    achievements: achievements
+                        .into_iter()
+                        .map(|value| {
+                            domain::NewAchievement::try_from((
+                                value.name,
+                                value.description,
+                                value.points,
+                            ))
+                        })
+                        .collect::<Result<_, _>>()?,
+                }
+            }
             models::Request::Games => Self::Games,
             models::Request::AddGenre { name } => Self::AddGenre(domain::NewGenre::try_from(name)?),
             models::Request::Genres => Self::Genres,
@@ -198,6 +224,17 @@ impl From<domain::Outcome> for models::Response {
         match response {
             domain::Outcome::AllItems(value) => Self::AllItems(value.into()),
             domain::Outcome::Created(value) => Self::Created(value),
+            domain::Outcome::GameAddedToLibrary {
+                player_id,
+                game_id,
+                genre_ids,
+                achievement_ids,
+            } => Self::GameAddedToLibrary {
+                player_id,
+                game_id,
+                genre_ids,
+                achievement_ids,
+            },
             domain::Outcome::Players(value) => {
                 Self::Players(value.into_iter().map(Into::into).collect())
             }

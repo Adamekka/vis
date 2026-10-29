@@ -14,6 +14,22 @@ pub enum Command {
     Players,
     /// Add a game and print its ID; release date uses YYYY-MM-DD
     AddGame { title: String, release_date: String },
+    /// Create a game, assign genres, create achievements, and add it to a player's library
+    AddGameToLibrary {
+        player_id: i64,
+        title: String,
+        release_date: String,
+        #[arg(
+            long = "genre",
+            required = true,
+            value_name = "ID",
+            allow_negative_numbers = true
+        )]
+        genre_ids: Vec<i64>,
+        #[arg(long = "achievement", required = true, num_args = 3,
+            value_names = ["NAME", "DESCRIPTION", "POINTS"], allow_hyphen_values = true)]
+        achievements: Vec<String>,
+    },
     /// List games and their genres
     Games,
     /// Add a genre and print its ID
@@ -53,7 +69,10 @@ pub enum Command {
 
 impl Command {
     pub fn execute(self, service: &mut impl Service) -> Result<(), AppError> {
-        print!("{}", Response::from(service.execute(self.into())?).text());
+        print!(
+            "{}",
+            Response::from(service.execute(self.try_into()?)?).text()
+        );
         Ok(())
     }
 }

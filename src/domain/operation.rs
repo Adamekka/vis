@@ -8,6 +8,12 @@ pub enum Operation {
     AddPlayer(NewPlayer),
     Players,
     AddGame(NewGame),
+    AddGameToLibrary {
+        player_id: i64,
+        game: NewGame,
+        genre_ids: Vec<i64>,
+        achievements: Vec<NewAchievement>,
+    },
     Games,
     AddGenre(NewGenre),
     Genres,
@@ -43,6 +49,12 @@ pub enum Operation {
 pub enum Outcome {
     AllItems(AllItems),
     Created(i64),
+    GameAddedToLibrary {
+        player_id: i64,
+        game_id: i64,
+        genre_ids: Vec<i64>,
+        achievement_ids: Vec<i64>,
+    },
     Players(Vec<Player>),
     Games(Vec<Game>),
     Genres(Vec<Genre>),

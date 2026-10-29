@@ -1,12 +1,17 @@
 //! Maps CLI commands to service requests and service results to display models.
 
-use crate::service::models::{self as service, Request};
+use crate::{
+    app_error::AppError,
+    service::models::{self as service, Request},
+};
 
 use super::{command::Command, models, status::Status};
 
-impl From<Command> for Request {
-    fn from(command: Command) -> Self {
-        match command {
+impl TryFrom<Command> for Request {
+    type Error = AppError;
+
+    fn try_from(command: Command) -> Result<Self, Self::Error> {
+        Ok(match command {
             Command::AllItems => Request::AllItems,
             Command::AddPlayer { username, email } => Request::AddPlayer { username, email },
             Command::Players => Request::Players,
@@ -17,6 +22,39 @@ impl From<Command> for Request {
                 title,
                 release_date,
             },
+            Command::AddGameToLibrary {
+                player_id,
+                title,
+                release_date,
+                genre_ids,
+                achievements,
+            } => {
+                let (entries, remainder) = achievements.as_chunks::<3>();
+                assert!(
+                    remainder.is_empty(),
+                    "clap groups achievement fields in threes"
+                );
+                let achievements = entries
+                    .iter()
+                    .map(|[name, description, points]| {
+                        Ok(service::NewAchievement {
+                            name: name.clone(),
+                            description: description.clone(),
+                            points: points.parse::<i32>().map_err(|source| AppError::Failure {
+                                message: "Enter a whole number from 0 to 2147483647 for achievement points.".to_owned(),
+                                source: Box::new(source),
+                            })?,
+                        })
+                    })
+                    .collect::<Result<_, AppError>>()?;
+                Request::AddGameToLibrary {
+                    player_id,
+                    title,
+                    release_date,
+                    genre_ids,
+                    achievements,
+                }
+            }
             Command::Games => Request::Games,
             Command::AddGenre { name } => Request::AddGenre { name },
             Command::Genres => Request::Genres,
@@ -56,7 +94,7 @@ impl From<Command> for Request {
                 achievement_id,
             },
             Command::Unlocked { player_id } => Request::Unlocked { player_id },
-        }
+        })
     }
 }
 
@@ -193,6 +231,17 @@ impl From<service::Response> for models::Response {
         match response {
             service::Response::AllItems(value) => Self::AllItems(value.into()),
             service::Response::Created(value) => Self::Created(value),
+            service::Response::GameAddedToLibrary {
+                player_id,
+                game_id,
+                genre_ids,
+                achievement_ids,
+            } => Self::GameAddedToLibrary {
+                player_id,
+                game_id,
+                genre_ids,
+                achievement_ids,
+            },
             service::Response::Players(value) => {
                 Self::Players(value.into_iter().map(Into::into).collect())
             }
