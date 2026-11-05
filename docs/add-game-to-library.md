@@ -24,14 +24,14 @@ The service validates the title, date, and achievement values before writing. It
 3. `AddAchievement` creates each achievement for that ID.
 4. `AddToLibrary` adds the game to the player with the same initial progress as the standalone command.
 
-The composite operation calls the same service dispatch as the standalone commands. It does not add SQL statements or another storage implementation. Both PostgreSQL and JSON use their existing individual writes and constraints.
+The composite operation calls the same service dispatch as the standalone commands inside one storage transaction. PostgreSQL uses a transaction on the existing connection and reuses the same SQL statements and constraints. JSON stages the individual changes in memory, validates them with the existing constraints, and saves the complete snapshot once. It writes a temporary file beside the library and replaces the library file only after saving succeeds.
 
 ## Failure behavior
 
-Each successful write remains saved. The workflow stops on the first failed write, and later steps do not run. There is no transaction spanning the workflow and no rollback of earlier writes.
+The workflow is all-or-nothing on both backends. It stops on the first failed step and discards all changes made by the command. Existing players, games, genre assignments, achievements, and library entries stay unchanged. Success is reported only after the transaction commits.
 
-For example, if the second achievement repeats the first one's name, the game, genre assignments, and first achievement remain saved. The second achievement is rejected, any subsequent achievements are skipped, and the game is not added to the player's library. The error identifies the failed step and lists the saved game, genre, and achievement IDs. A missing player fails at the final step and also leaves the earlier writes saved.
+For example, if the second achievement repeats the first one's name, the new game, genre assignments, and first achievement are all discarded. The error identifies the failed step. A missing player fails at the final step and also discards the earlier changes.
 
-Continue with `tag-game`, `add-achievement`, and `add-to-library` using the saved game ID. Running the entire composite command again creates another game.
+Correct the input and run the complete command again. PostgreSQL may leave gaps in generated IDs after a rollback because sequences are not rolled back.
 
-To demonstrate a partial failure, repeat an achievement name in the command above, then inspect `games`, `achievements <game_id>`, and `library <player_id>`. The same behavior applies to both storage backends.
+To demonstrate rollback, repeat an achievement name in the command above, then inspect `all-items`. No part of the rejected game setup should appear. The same behavior applies to both storage backends.

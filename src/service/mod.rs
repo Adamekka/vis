@@ -20,67 +20,68 @@ impl<S: Storage> LibraryService<S> {
         Self { storage }
     }
 
-    fn execute_operation(&mut self, operation: Operation) -> Result<Outcome, AppError> {
-        let storage = &mut self.storage;
+    fn execute_operation(storage: &mut S, operation: Operation) -> Result<Outcome, AppError> {
         let outcome = match operation {
             Operation::AddGameToLibrary {
                 player_id,
                 game,
                 genre_ids,
                 achievements,
-            } => {
+            } => storage.transaction(|storage| {
                 // Creation operations return a shared outcome enum; another variant is a dispatcher bug.
-                let Outcome::Created(game_id) = self.execute_operation(Operation::AddGame(game))?
+                let Outcome::Created(game_id) =
+                    LibraryService::execute_operation(storage, Operation::AddGame(game))?
                 else {
                     unreachable!("AddGame must return the created game ID");
                 };
-                let mut assigned_genres = Vec::new();
                 let mut achievement_ids = Vec::new();
-                // Reuse each standalone operation without a transaction so every successful write stays saved.
                 let result = (|| {
-                    for genre_id in genre_ids {
-                        self.execute_operation(Operation::TagGame(GameGenre { game_id, genre_id }))
-                            .map_err(|error| (format!("assign genre {genre_id}"), error))?;
-                        assigned_genres.push(genre_id);
+                    for &genre_id in &genre_ids {
+                        LibraryService::execute_operation(
+                            storage,
+                            Operation::TagGame(GameGenre { game_id, genre_id }),
+                        )
+                        .map_err(|error| (format!("assign genre {genre_id}"), error))?;
                     }
                     for (index, achievement) in achievements.into_iter().enumerate() {
-                        let Outcome::Created(id) = self
-                            .execute_operation(Operation::AddAchievement {
+                        let Outcome::Created(id) = LibraryService::execute_operation(
+                            storage,
+                            Operation::AddAchievement {
                                 game_id,
                                 achievement,
-                            })
-                            .map_err(|error| {
-                                (format!("create achievement {}", index + 1), error)
-                            })?
+                            },
+                        )
+                        .map_err(|error| (format!("create achievement {}", index + 1), error))?
                         else {
                             unreachable!("AddAchievement must return the created achievement ID");
                         };
                         achievement_ids.push(id);
                     }
-                    self.execute_operation(Operation::AddToLibrary { player_id, game_id })
-                        .map_err(|error| {
-                            (
-                                format!("add the game to player {player_id}'s library"),
-                                error,
-                            )
-                        })?;
+                    LibraryService::execute_operation(
+                        storage,
+                        Operation::AddToLibrary { player_id, game_id },
+                    )
+                    .map_err(|error| {
+                        (
+                            format!("add the game to player {player_id}'s library"),
+                            error,
+                        )
+                    })?;
                     Ok::<_, (String, AppError)>(())
                 })();
                 if let Err((step, source)) = result {
                     return Err(AppError::Failure {
-                        message: format!(
-                            "Could not {step}. {source}\nGame ID {game_id} remains saved. Assigned genre IDs: {assigned_genres:?}. Created achievement IDs: {achievement_ids:?}. The game was not added to the player's library. Use Tag game, Add achievement, and Add to library to continue with these IDs."
-                        ),
+                        message: format!("Could not {step}. {source}"),
                         source: Box::new(source),
                     });
                 }
-                Outcome::GameAddedToLibrary {
+                Ok(Outcome::GameAddedToLibrary {
                     player_id,
                     game_id,
-                    genre_ids: assigned_genres,
+                    genre_ids,
                     achievement_ids,
-                }
-            }
+                })
+            })?,
             Operation::AllItems => {
                 let players = storage.players()?;
                 let games = storage.games()?;
@@ -160,8 +161,7 @@ impl<S: Storage> LibraryService<S> {
 
 impl<S: Storage> Service for LibraryService<S> {
     fn execute(&mut self, request: Request) -> Result<Response, AppError> {
-        self.execute_operation(Operation::try_from(request)?)
-            .map(Into::into)
+        Self::execute_operation(&mut self.storage, Operation::try_from(request)?).map(Into::into)
     }
 }
 

@@ -1,4 +1,4 @@
-use postgres::{Client, NoTls, error::SqlState};
+use postgres::{Client, GenericClient, NoTls, Transaction, error::SqlState};
 
 use crate::{
     app_error::AppError,
@@ -10,8 +10,8 @@ use crate::{
 
 use super::models::*;
 
-pub struct PostgresStorage {
-    db: Client,
+pub struct PostgresStorage<C = Client> {
+    db: C,
 }
 
 impl PostgresStorage {
@@ -23,7 +23,9 @@ impl PostgresStorage {
         })?;
         Ok(Self { db })
     }
+}
 
+impl<C: GenericClient> PostgresStorage<C> {
     fn require_player(&mut self, id: i64) -> Result<(), AppError> {
         if self
             .db
@@ -38,7 +40,25 @@ impl PostgresStorage {
     }
 }
 
-impl Storage for PostgresStorage {
+impl<C: GenericClient> Storage for PostgresStorage<C> {
+    type Transaction<'a>
+        = PostgresStorage<Transaction<'a>>
+    where
+        Self: 'a;
+
+    fn transaction<'a, R>(
+        &'a mut self,
+        operation: impl FnOnce(&mut Self::Transaction<'a>) -> Result<R, AppError>,
+    ) -> Result<R, AppError> {
+        let mut storage = PostgresStorage {
+            db: self.db.transaction()?,
+        };
+        // Dropping an uncommitted transaction rolls back, including early returns from the callback.
+        let result = operation(&mut storage)?;
+        storage.db.commit()?;
+        Ok(result)
+    }
+
     fn add_player(&mut self, player: NewPlayer) -> Result<i64, AppError> {
         let PlayerValues { username, email } = player.into();
         Ok(self

@@ -18,8 +18,13 @@ use crate::{
 };
 
 pub struct JsonStorage {
-    path: PathBuf,
+    target: SaveTarget,
     data: Snapshot,
+}
+
+enum SaveTarget {
+    File(PathBuf),
+    Transaction,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -138,7 +143,7 @@ impl JsonStorage {
             Err(error) => return Err(error.into()),
         };
         let storage = Self {
-            path: path.to_owned(),
+            target: SaveTarget::File(path.to_owned()),
             data,
         };
         storage.data.validate()?;
@@ -149,8 +154,14 @@ impl JsonStorage {
     }
 
     fn write(&self, data: &Snapshot) -> Result<(), AppError> {
-        let json = serde_json::to_string_pretty(data)?;
-        fs::write(&self.path, json)?;
+        let SaveTarget::File(path) = &self.target else {
+            // Transaction writes stay in memory until the outer storage commits the complete snapshot.
+            return Ok(());
+        };
+        // Keep the temporary file beside the destination so replacement is atomic on the same filesystem.
+        let mut file = tempfile::NamedTempFile::new_in(path.with_file_name("."))?;
+        serde_json::to_writer_pretty(&mut file, data)?;
+        file.persist(path).map_err(|error| error.error)?;
         Ok(())
     }
 
@@ -186,6 +197,22 @@ fn next_id(ids: impl Iterator<Item = i64>) -> Result<i64, AppError> {
 }
 
 impl Storage for JsonStorage {
+    type Transaction<'a> = Self;
+
+    fn transaction<'a, R>(
+        &'a mut self,
+        operation: impl FnOnce(&mut Self::Transaction<'a>) -> Result<R, AppError>,
+    ) -> Result<R, AppError> {
+        let mut storage = Self {
+            target: SaveTarget::Transaction,
+            data: self.data.clone(),
+        };
+        let result = operation(&mut storage)?;
+        self.write(&storage.data)?;
+        self.data = storage.data;
+        Ok(result)
+    }
+
     fn add_player(&mut self, player: NewPlayer) -> Result<i64, AppError> {
         let PlayerValues { username, email } = player.into();
         self.update(|data| {

@@ -6,6 +6,16 @@ use super::{
 };
 
 pub trait Storage {
+    type Transaction<'a>: Storage
+    where
+        Self: 'a;
+
+    /// Commit all changes if the operation succeeds; discard them if it fails.
+    fn transaction<'a, R>(
+        &'a mut self,
+        operation: impl FnOnce(&mut Self::Transaction<'a>) -> Result<R, AppError>,
+    ) -> Result<R, AppError>;
+
     fn add_player(&mut self, player: NewPlayer) -> Result<i64, AppError>;
     fn players(&mut self) -> Result<Vec<Player>, AppError>;
     fn add_game(&mut self, game: NewGame) -> Result<i64, AppError>;

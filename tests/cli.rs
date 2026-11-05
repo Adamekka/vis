@@ -398,15 +398,21 @@ fn exercise_workflow(run: impl Fn(&[&str], bool) -> String) -> (i64, i64, i64) {
     assert!(setup_library.contains("Explorer\tVisit every area\t25\tLocked"));
     assert!(!run(&["library", &other_player], true).contains("Complete game"));
 
-    // Composite writes deliberately persist their completed steps when a later insert fails.
-    for (title, target_player, second_genre, second_name, failed_step, expected_achievements) in [
+    // Fail at different stages to verify that no completed step escapes the transaction.
+    for (title, target_player, second_genre, second_name, failed_step) in [
         (
             "Missing genre",
             player.as_str(),
             "999999",
             "Explorer",
             "assign genre 999999".to_owned(),
-            0,
+        ),
+        (
+            "Duplicate genre",
+            player.as_str(),
+            genre.as_str(),
+            "Explorer",
+            format!("assign genre {genre}"),
         ),
         (
             "Duplicate achievement",
@@ -414,7 +420,6 @@ fn exercise_workflow(run: impl Fn(&[&str], bool) -> String) -> (i64, i64, i64) {
             other_genre.as_str(),
             "First step",
             "create achievement 2".to_owned(),
-            1,
         ),
         (
             "Missing player",
@@ -422,9 +427,9 @@ fn exercise_workflow(run: impl Fn(&[&str], bool) -> String) -> (i64, i64, i64) {
             other_genre.as_str(),
             "Explorer",
             "add the game to player 999999's library".to_owned(),
-            3,
         ),
     ] {
+        let before = run(&["all-items"], true);
         let error = run(
             &[
                 "add-game-to-library",
@@ -450,38 +455,33 @@ fn exercise_workflow(run: impl Fn(&[&str], bool) -> String) -> (i64, i64, i64) {
             ],
             false,
         );
-        let games = run(&["games"], true);
-        let row = games
-            .lines()
-            .find(|row| row.contains(&format!("\t{title}\t")))
-            .unwrap();
-        let saved_game = row.split('\t').next().unwrap();
         assert!(
             error.contains(&format!("Could not {failed_step}.")),
             "{error}"
         );
-        assert!(error.contains(&format!("Game ID {saved_game} remains saved.")));
-        assert!(error.contains("Created achievement IDs:"));
-        assert!(row.ends_with(if expected_achievements == 0 {
-            "Adventure"
-        } else {
-            "Adventure, Puzzle"
-        }));
-        let achievements = run(&["achievements", saved_game], true);
-        assert_eq!(achievements.lines().count() - 1, expected_achievements);
-        assert!(!run(&["library", &player], true).contains(title));
-        // The saved game can be completed through the same standalone operations.
+        assert_eq!(run(&["all-items"], true), before);
+        // The complete command can be retried after correcting the rejected input.
         run(
             &[
-                "add-achievement",
-                saved_game,
-                "Extra",
-                "Continue after failure",
-                "5",
+                "add-game-to-library",
+                &player,
+                title,
+                "2024-02-29",
+                "--genre",
+                &genre,
+                "--genre",
+                &other_genre,
+                "--achievement",
+                "First step",
+                "Finish the tutorial",
+                "10",
+                "--achievement",
+                "Explorer",
+                "Visit every area",
+                "25",
             ],
             true,
         );
-        run(&["add-to-library", &player, saved_game], true);
         assert!(run(&["library", &player], true).contains(title));
     }
     (
@@ -530,14 +530,11 @@ fn json_workflow() {
             // Preserve trailing tabs because they represent empty final columns.
             stdout.trim_end_matches('\n').to_owned()
         } else {
-            // Only the composite command may retain successful writes before reporting a failure.
-            if args[0] != "add-game-to-library" {
-                assert_eq!(
-                    std::fs::read(&path).unwrap(),
-                    before.unwrap(),
-                    "A rejected command changed the library"
-                );
-            }
+            assert_eq!(
+                std::fs::read(&path).unwrap(),
+                before.unwrap(),
+                "A rejected command changed the library"
+            );
             stderr
         }
     });
