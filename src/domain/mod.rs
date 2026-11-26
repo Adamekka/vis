@@ -1,5 +1,9 @@
 mod achievement;
+mod action;
 mod all_items;
+mod authentication;
+mod authorization;
+mod current_user;
 mod game;
 mod game_genre;
 mod genre;
@@ -10,11 +14,17 @@ mod player;
 mod player_achievement;
 mod player_game;
 mod player_library;
+mod player_listing;
+mod role;
 mod status;
 mod storage;
+mod user;
 
 pub use achievement::{Achievement, NewAchievement};
+pub use action::Action;
 pub use all_items::AllItems;
+pub use authentication::authenticate;
+pub use current_user::CurrentUser;
 pub use game::{Game, NewGame};
 pub use game_genre::GameGenre;
 pub use genre::{Genre, NewGenre};
@@ -24,8 +34,11 @@ pub use player::{NewPlayer, Player};
 pub use player_achievement::PlayerAchievement;
 pub use player_game::{PlayerGame, Progress};
 pub use player_library::PlayerLibrary;
+pub use player_listing::{Email, PlayerListing};
+pub use role::Role;
 pub use status::Status;
 pub use storage::Storage;
+pub use user::User;
 
 #[cfg(test)]
 mod tests {

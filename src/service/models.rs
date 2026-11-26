@@ -67,7 +67,7 @@ pub enum Response {
         genre_ids: Vec<i64>,
         achievement_ids: Vec<i64>,
     },
-    Players(Vec<Player>),
+    Players(Vec<PlayerListing>),
     Games(Vec<Game>),
     Genres(Vec<Genre>),
     GenreAssigned,
@@ -91,6 +91,17 @@ pub struct Player {
     pub id: i64,
     pub username: String,
     pub email: String,
+}
+
+pub struct PlayerListing {
+    pub id: i64,
+    pub username: String,
+    pub email: Email,
+}
+
+pub enum Email {
+    Visible(String),
+    Hidden,
 }
 
 pub struct Game {
@@ -155,11 +166,43 @@ pub struct PlayerAchievement {
 }
 
 pub struct AllItems {
-    pub players: Vec<Player>,
+    pub players: Vec<PlayerListing>,
     pub games: Vec<Game>,
     pub genres: Vec<Genre>,
     pub game_genres: Vec<GameGenre>,
     pub library: Vec<PlayerGame>,
     pub achievements: Vec<Achievement>,
     pub unlocked: Vec<PlayerAchievement>,
+}
+
+pub struct User {
+    pub username: String,
+    pub role: Role,
+    /// Actions the role may use; player-scoped input is still checked when a request runs.
+    pub actions: Vec<Action>,
+}
+
+pub enum Role {
+    Admin,
+    Player { player_id: i64 },
+}
+
+#[derive(Clone, Copy)]
+pub enum Action {
+    AllItems,
+    AddPlayer,
+    Players,
+    AddGame,
+    AddGameToLibrary,
+    Games,
+    AddGenre,
+    Genres,
+    TagGame,
+    AddToLibrary,
+    Library,
+    SetProgress,
+    AddAchievement,
+    Achievements,
+    Unlock,
+    Unlocked,
 }

@@ -3,19 +3,25 @@ use std::fs;
 use crate::{
     app_error::AppError,
     data::{JsonStorage, PostgresStorage},
-    domain::Storage,
+    domain::{CurrentUser, Storage},
 };
 
 use super::{
     LibraryService, Service,
-    models::{NewAchievement, Request, Response, Status},
+    models::{Email, NewAchievement, Request, Response, Status},
 };
+
+fn signed_in_service<S: Storage>(storage: S, username: &str) -> LibraryService<S> {
+    let mut service = LibraryService::new(storage, CurrentUser::default());
+    service.sign_in(username, username).unwrap();
+    service
+}
 
 #[test]
 fn invalid_service_requests_are_rejected_before_storage_changes() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("library.json");
-    let mut service = LibraryService::new(JsonStorage::open(&path).unwrap());
+    let mut service = signed_in_service(JsonStorage::open(&path).unwrap(), "admin");
     let original = fs::read(&path).unwrap();
     for request in [
         Request::AddPlayer {
@@ -84,8 +90,73 @@ fn invalid_service_requests_are_rejected_before_storage_changes() {
     assert_eq!(fs::read(&path).unwrap(), original);
 }
 
+#[test]
+fn roles_limit_actions_and_player_emails() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("library.json");
+    let current_user = CurrentUser::default();
+    let mut service = LibraryService::new(JsonStorage::open(&path).unwrap(), current_user.clone());
+    assert!(matches!(
+        service.execute(Request::Players),
+        Err(AppError::SignInRequired)
+    ));
+    assert!(matches!(
+        service.sign_in("admin", "wrong"),
+        Err(AppError::InvalidCredentials)
+    ));
+
+    service.sign_in("admin", "admin").unwrap();
+    for (username, email) in [("alex", "alex@example.test"), ("sam", "sam@example.test")] {
+        service
+            .execute(Request::AddPlayer {
+                username: username.to_owned(),
+                email: email.to_owned(),
+            })
+            .unwrap();
+    }
+    let Ok(Response::Players(players)) = service.execute(Request::Players) else {
+        panic!("expected players");
+    };
+    assert!(
+        players
+            .iter()
+            .all(|player| matches!(player.email, Email::Visible(_)))
+    );
+
+    // The injected handle is shared, so signing in through any clone changes the service's user.
+    service.sign_out();
+    current_user.sign_in(crate::domain::authenticate("alex", "alex").unwrap());
+    let Ok(Response::Players(players)) = service.execute(Request::Players) else {
+        panic!("expected players");
+    };
+    let emails: Vec<_> = players
+        .iter()
+        .map(|player| match &player.email {
+            Email::Visible(email) => email.as_str(),
+            Email::Hidden => "hidden",
+        })
+        .collect();
+    assert_eq!(emails, ["alex@example.test", "hidden"]);
+    assert!(service.execute(Request::Library { player_id: 1 }).is_ok());
+    let original = fs::read(&path).unwrap();
+    for request in [
+        Request::Library { player_id: 2 },
+        Request::Unlocked { player_id: 2 },
+        Request::AddToLibrary {
+            player_id: 2,
+            game_id: 1,
+        },
+        Request::AddGenre {
+            name: "Adventure".to_owned(),
+        },
+    ] {
+        assert!(matches!(service.execute(request), Err(AppError::Forbidden)));
+    }
+    assert_eq!(fs::read(&path).unwrap(), original);
+}
+
 fn exercise_transaction_recovery(storage: impl Storage) {
-    let mut service = LibraryService::new(storage);
+    let mut service = signed_in_service(storage, "admin");
     let Response::Created(player_id) = service
         .execute(Request::AddPlayer {
             username: "alex".to_owned(),

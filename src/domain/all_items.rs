@@ -1,7 +1,7 @@
-use super::{Achievement, Game, GameGenre, Genre, Player, PlayerAchievement, PlayerGame};
+use super::{Achievement, Game, GameGenre, Genre, PlayerAchievement, PlayerGame, PlayerListing};
 
 pub struct AllItems {
-    pub players: Vec<Player>,
+    pub players: Vec<PlayerListing>,
     pub games: Vec<Game>,
     pub genres: Vec<Genre>,
     pub game_genres: Vec<GameGenre>,

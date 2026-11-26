@@ -11,6 +11,7 @@ use clap::Parser;
 use crate::{
     app_error::AppError,
     data::{JsonStorage, PostgresStorage},
+    domain::CurrentUser,
     presentation::{Backend, Cli},
     service::LibraryService,
 };
@@ -31,6 +32,8 @@ fn main() -> ExitCode {
 }
 
 fn run(cli: Cli) -> Result<(), AppError> {
+    // One signed-in user for the whole app, injected into every service that needs it.
+    let current_user = CurrentUser::default();
     match cli.storage {
         Backend::Postgres => {
             if cli.file.is_some() {
@@ -45,13 +48,21 @@ fn run(cli: Cli) -> Result<(), AppError> {
                 ));
             }
             let storage = PostgresStorage::connect(&database_url)?;
-            cli.command.execute(LibraryService::new(storage))
+            cli.command.execute(
+                LibraryService::new(storage, current_user),
+                cli.user,
+                cli.password,
+            )
         }
         Backend::Json => {
             // Clap requires a path in JSON mode, so absence is a parser invariant violation.
             let path = cli.file.expect("clap requires --file for JSON storage");
             let storage = JsonStorage::open(&path)?;
-            cli.command.execute(LibraryService::new(storage))
+            cli.command.execute(
+                LibraryService::new(storage, current_user),
+                cli.user,
+                cli.password,
+            )
         }
     }
 }

@@ -11,6 +11,9 @@ pub enum AppError {
     InvalidFile(&'static str),
     IdExhausted,
     NotFound(&'static str),
+    SignInRequired,
+    InvalidCredentials,
+    Forbidden,
     Failure {
         message: String,
         source: Box<dyn Error + Send + Sync>,
@@ -34,6 +37,11 @@ impl fmt::Display for AppError {
             Self::EmptyGameSetup => "Choose at least one genre and enter at least one achievement.",
             Self::InvalidFile(reason) => return write!(f, "Invalid library file. {reason}"),
             Self::IdExhausted => "No more IDs are available. Choose another library file.",
+            Self::SignInRequired => "Sign in to continue.",
+            Self::InvalidCredentials => "Incorrect username or password.",
+            Self::Forbidden => {
+                "Your account cannot do this. Players can view the catalog and manage only their own library."
+            }
             Self::Failure { message, .. } => message,
         };
         f.write_str(message)

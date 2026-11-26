@@ -8,12 +8,15 @@ use crate::{
     service::{Service, models::Request},
 };
 
-use super::{command::Command, models::Response};
+use super::{
+    command::Command,
+    models::{Response, User},
+};
 
 pub fn run(mut service: impl Service + 'static) -> Result<(), AppError> {
     // Build forms from the CLI definitions so both interfaces share arguments and validation.
     let parser = Command::augment_subcommands(clap::Command::new("vis"));
-    let actions: Vec<_> = parser
+    let all_actions: Vec<_> = parser
         .get_subcommands()
         .map(|command| {
             let mut label = command.get_name().replace('-', " ");
@@ -21,19 +24,22 @@ pub fn run(mut service: impl Service + 'static) -> Result<(), AppError> {
             (command.get_name().to_owned(), label)
         })
         .collect();
-    let mut selected = actions
-        .iter()
-        .position(|(name, _)| name == "all-items")
-        .expect("the initial action must exist in the command definitions");
-    let mut values = Vec::new();
-    // Each repeatable option contains rows, and each row contains its named fields.
-    let mut repeated_values: Vec<Vec<Vec<String>>> = Vec::new();
-    let mut result_title = actions[selected].1.clone();
-    let mut result = service
-        .execute(Request::AllItems)
-        .map(Response::from)
-        .map(Response::text);
-    let mut validation_error = String::new();
+    // State of the signed-in screen; it exists only while a user is signed in.
+    struct Workspace {
+        user: User,
+        actions: Vec<(String, String)>,
+        selected: usize,
+        values: Vec<String>,
+        // Each repeatable option contains rows, and each row contains its named fields.
+        repeated_values: Vec<Vec<Vec<String>>>,
+        result_title: String,
+        result: Result<String, AppError>,
+        validation_error: String,
+    }
+    let mut workspace: Option<Workspace> = None;
+    let mut username = String::new();
+    let mut password = String::new();
+    let mut sign_in_error = String::new();
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -45,20 +51,79 @@ pub fn run(mut service: impl Service + 'static) -> Result<(), AppError> {
     };
     eframe::run_ui_native("Game library", options, move |ui, _frame| {
         egui::CentralPanel::default().show(ui, |ui| {
+            let Some(Workspace { user, actions, selected, values, repeated_values, result_title, result, validation_error }) = &mut workspace else {
+                egui::Grid::new("sign-in").spacing([16.0, 8.0]).show(ui, |ui| {
+                    let label = ui.label("Username");
+                    ui.add_sized([260.0, 24.0], egui::TextEdit::singleline(&mut username))
+                        .labelled_by(label.id);
+                    ui.end_row();
+                    let label = ui.label("Password");
+                    ui.add_sized([260.0, 24.0], egui::TextEdit::singleline(&mut password).password(true))
+                        .labelled_by(label.id);
+                    ui.end_row();
+                });
+                ui.add_space(8.0);
+                let complete = !username.trim().is_empty() && !password.is_empty();
+                if ui.add_enabled(complete, egui::Button::new("Sign in")).clicked() {
+                    match service.sign_in(username.trim(), &password) {
+                        Ok(user) => {
+                            let user = User::from(user);
+                            let actions: Vec<_> = all_actions
+                                .iter()
+                                .filter(|(name, _)| user.actions.contains(&name.as_str()))
+                                .cloned()
+                                .collect();
+                            let selected = actions
+                                .iter()
+                                .position(|(name, _)| name == "all-items")
+                                .expect("every role can list all items");
+                            password.clear();
+                            sign_in_error.clear();
+                            workspace = Some(Workspace {
+                                result_title: actions[selected].1.clone(),
+                                result: service
+                                    .execute(Request::AllItems)
+                                    .map(Response::from)
+                                    .map(Response::text),
+                                user,
+                                actions,
+                                selected,
+                                values: Vec::new(),
+                                repeated_values: Vec::new(),
+                                validation_error: String::new(),
+                            });
+                        }
+                        Err(error) => sign_in_error = error.to_string(),
+                    }
+                }
+                if !sign_in_error.is_empty() {
+                    ui.colored_label(ui.visuals().error_fg_color, &sign_in_error);
+                }
+                return;
+            };
+            let mut signed_out = false;
             egui::ScrollArea::vertical().show(ui, |ui| {
-                let previous = selected;
+                ui.horizontal(|ui| {
+                    ui.label(format!("Signed in as {} ({})", user.username, user.role));
+                    if ui.button("Sign out").clicked() {
+                        signed_out = true;
+                    }
+                });
+                ui.add_space(8.0);
+                let previous = *selected;
                 egui::ComboBox::from_label("Action")
-                    .selected_text(&actions[selected].1)
+                    .selected_text(&actions[*selected].1)
                     .show_ui(ui, |ui| {
                         for (index, (_, label)) in actions.iter().enumerate() {
-                            ui.selectable_value(&mut selected, index, label);
+                            ui.selectable_value(selected, index, label);
                         }
                     });
-                if selected != previous {
+                if *selected != previous {
                     values.clear();
                     repeated_values.clear();
                     validation_error.clear();
                 }
+                let selected = *selected;
                 let command = parser.find_subcommand(&actions[selected].0)
                     .expect("the selected action comes from the command definitions");
                 values.resize_with(command.get_positionals().count(), String::new);
@@ -67,7 +132,7 @@ pub fn run(mut service: impl Service + 'static) -> Result<(), AppError> {
                     .filter(|argument| matches!(argument.get_action(), clap::ArgAction::Append))
                     .collect();
                 if repeated_values.len() != repeated_arguments.len() {
-                    repeated_values = repeated_arguments
+                    *repeated_values = repeated_arguments
                         .iter()
                         .map(|argument| {
                             let names = argument
@@ -107,7 +172,7 @@ pub fn run(mut service: impl Service + 'static) -> Result<(), AppError> {
                         ui.end_row();
                     }
                 });
-                for (argument, entries) in repeated_arguments.iter().zip(&mut repeated_values) {
+                for (argument, entries) in repeated_arguments.iter().zip(repeated_values.iter_mut()) {
                     ui.add_space(8.0);
                     let mut heading = argument.get_id().as_str().replace("_ids", "s");
                     heading[..1].make_ascii_uppercase();
@@ -172,15 +237,15 @@ pub fn run(mut service: impl Service + 'static) -> Result<(), AppError> {
                                 .all(|value| !value.trim().is_empty())
                     });
                 if ui.add_enabled(complete, egui::Button::new("Run")).clicked() {
-                    match parse_form(&parser, command.get_name(), &values, &repeated_values) {
+                    match parse_form(&parser, command.get_name(), values, repeated_values) {
                         Ok(command) => {
                             validation_error.clear();
                             result_title.clone_from(&actions[selected].1);
-                            result = Request::try_from(command).and_then(|request| service.execute(request))
+                            *result = Request::try_from(command).and_then(|request| service.execute(request))
                                 .map(Response::from).map(Response::text);
                         }
                         Err(error) => {
-                            validation_error = "Enter whole numbers for IDs, points, and playtime. Points and playtime must be zero or greater.".to_owned();
+                            *validation_error = "Enter whole numbers for IDs, points, and playtime. Points and playtime must be zero or greater.".to_owned();
                             if cfg!(debug_assertions) {
                                 validation_error.push_str(&format!("\nDetails: {error}"));
                             }
@@ -188,11 +253,11 @@ pub fn run(mut service: impl Service + 'static) -> Result<(), AppError> {
                     }
                 }
                 if !validation_error.is_empty() {
-                    ui.colored_label(ui.visuals().error_fg_color, &validation_error);
+                    ui.colored_label(ui.visuals().error_fg_color, validation_error.as_str());
                 }
                 ui.separator();
                 ui.label(format!("Results: {result_title}"));
-                match &result {
+                match result {
                     Ok(text) => {
                         egui::ScrollArea::horizontal().show(ui, |ui| {
                             // A borrowed string keeps results selectable and copyable without allowing edits.
@@ -211,6 +276,11 @@ pub fn run(mut service: impl Service + 'static) -> Result<(), AppError> {
                     }
                 }
             });
+            if signed_out {
+                service.sign_out();
+                workspace = None;
+                username.clear();
+            }
         });
     }).map_err(|error| AppError::Failure {
         message: "Could not open the game library window. Check your display setup and try again.".to_owned(),
@@ -308,6 +378,26 @@ mod tests {
         ] {
             assert!(parse_form(&parser, "set-progress", &fields.map(str::to_owned), &[]).is_err());
         }
+    }
+
+    #[test]
+    fn signed_in_actions_match_the_command_definitions() {
+        use crate::{data::JsonStorage, domain::CurrentUser, service::LibraryService};
+
+        let parser = Command::augment_subcommands(clap::Command::new("vis"));
+        let directory = tempfile::tempdir().unwrap();
+        let storage = JsonStorage::open(&directory.path().join("library.json")).unwrap();
+        let mut service = LibraryService::new(storage, CurrentUser::default());
+        let mut names: Vec<_> = parser
+            .get_subcommands()
+            .map(|command| command.get_name())
+            .collect();
+        names.sort_unstable();
+        let mut admin = User::from(service.sign_in("admin", "admin").unwrap()).actions;
+        admin.sort_unstable();
+        assert_eq!(admin, names);
+        let player = User::from(service.sign_in("alex", "alex").unwrap()).actions;
+        assert!(player.contains(&"library") && !player.contains(&"add-game"));
     }
 
     #[test]

@@ -91,3 +91,10 @@ pub struct AllItems {
     pub achievements: Vec<Achievement>,
     pub unlocked: Vec<PlayerAchievement>,
 }
+
+pub struct User {
+    pub username: String,
+    pub role: String,
+    /// Command names the role may use.
+    pub actions: Vec<&'static str>,
+}

@@ -76,6 +76,7 @@ fn postgres_workflow() {
 
         let run = |args: &[&str], success: bool| {
             let output = Command::new(env!("CARGO_BIN_EXE_vis"))
+                .args(["--user", "admin", "--password", "admin"])
                 .args(args)
                 .env("DATABASE_URL", &scoped_url)
                 .output()
@@ -506,6 +507,7 @@ fn json_workflow() {
             .arg("json")
             .arg("--file")
             .arg(&path)
+            .args(["--user", "admin", "--password", "admin"])
             .args(args)
             .env_remove("DATABASE_URL")
             .output()
@@ -538,4 +540,51 @@ fn json_workflow() {
             stderr
         }
     });
+}
+
+#[test]
+fn json_sign_in_and_roles() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("library.json");
+    let run = |credentials: &[&str], args: &[&str]| {
+        let output = Command::new(env!("CARGO_BIN_EXE_vis"))
+            .args(["--storage", "json", "--file"])
+            .arg(&path)
+            .args(credentials)
+            .args(args)
+            .env_remove("DATABASE_URL")
+            .output()
+            .unwrap();
+        let text = if output.status.success() {
+            output.stdout
+        } else {
+            output.stderr
+        };
+        (output.status.success(), String::from_utf8(text).unwrap())
+    };
+    let admin = ["--user", "admin", "--password", "admin"];
+    let alex = ["--user", "alex", "--password", "alex"];
+
+    let (success, error) = run(&[], &["players"]);
+    assert!(!success && error.contains("Sign in with --user and --password"));
+    let (success, error) = run(&["--user", "admin", "--password", "wrong"], &["players"]);
+    assert!(!success && error.contains("Incorrect username or password"));
+
+    assert!(run(&admin, &["add-player", "alex", "alex@example.test"]).0);
+    assert!(run(&admin, &["add-player", "sam", "sam@example.test"]).0);
+    let (_, players) = run(&admin, &["players"]);
+    assert!(players.contains("sam\tsam@example.test"));
+
+    let (success, players) = run(&alex, &["players"]);
+    assert!(success);
+    assert!(players.contains("alex\talex@example.test"));
+    assert!(players.contains("sam\t(hidden)"));
+    assert!(run(&alex, &["library", "1"]).0);
+    for args in [&["library", "2"][..], &["add-game", "Game", "2024-02-29"]] {
+        let (success, error) = run(&alex, args);
+        assert!(
+            !success && error.contains("Your account cannot do this"),
+            "{args:?}"
+        );
+    }
 }

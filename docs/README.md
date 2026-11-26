@@ -2,3 +2,4 @@
 
 - [Player library](player-library.md): display a selected player's details and games, including the joined PostgreSQL query.
 - [Adding a game to a library](add-game-to-library.md): compose the standalone inserts in one transaction.
+- [Sign-in and roles](login.md): demo accounts, role rules, and where authentication and authorization happen.

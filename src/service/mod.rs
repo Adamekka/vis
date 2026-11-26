@@ -3,24 +3,37 @@ pub mod models;
 
 use crate::{
     app_error::AppError,
-    domain::{AllItems, GameGenre, Operation, Outcome, Progress, Status, Storage},
+    domain::{
+        AllItems, CurrentUser, GameGenre, Operation, Outcome, Progress, Status, Storage, User,
+        authenticate,
+    },
 };
 use models::{Request, Response};
 
 pub trait Service {
+    fn sign_in(&mut self, username: &str, password: &str) -> Result<models::User, AppError>;
+    fn sign_out(&mut self);
     fn execute(&mut self, request: Request) -> Result<Response, AppError>;
 }
 
 pub struct LibraryService<S> {
     storage: S,
+    current_user: CurrentUser,
 }
 
 impl<S: Storage> LibraryService<S> {
-    pub fn new(storage: S) -> Self {
-        Self { storage }
+    pub fn new(storage: S, current_user: CurrentUser) -> Self {
+        Self {
+            storage,
+            current_user,
+        }
     }
 
-    fn execute_operation(storage: &mut S, operation: Operation) -> Result<Outcome, AppError> {
+    fn execute_operation(
+        storage: &mut S,
+        user: &User,
+        operation: Operation,
+    ) -> Result<Outcome, AppError> {
         let outcome = match operation {
             Operation::AddGameToLibrary {
                 player_id,
@@ -30,7 +43,7 @@ impl<S: Storage> LibraryService<S> {
             } => storage.transaction(|storage| {
                 // Creation operations return a shared outcome enum; another variant is a dispatcher bug.
                 let Outcome::Created(game_id) =
-                    LibraryService::execute_operation(storage, Operation::AddGame(game))?
+                    LibraryService::execute_operation(storage, user, Operation::AddGame(game))?
                 else {
                     unreachable!("AddGame must return the created game ID");
                 };
@@ -39,6 +52,7 @@ impl<S: Storage> LibraryService<S> {
                     for &genre_id in &genre_ids {
                         LibraryService::execute_operation(
                             storage,
+                            user,
                             Operation::TagGame(GameGenre { game_id, genre_id }),
                         )
                         .map_err(|error| (format!("assign genre {genre_id}"), error))?;
@@ -46,6 +60,7 @@ impl<S: Storage> LibraryService<S> {
                     for (index, achievement) in achievements.into_iter().enumerate() {
                         let Outcome::Created(id) = LibraryService::execute_operation(
                             storage,
+                            user,
                             Operation::AddAchievement {
                                 game_id,
                                 achievement,
@@ -59,6 +74,7 @@ impl<S: Storage> LibraryService<S> {
                     }
                     LibraryService::execute_operation(
                         storage,
+                        user,
                         Operation::AddToLibrary { player_id, game_id },
                     )
                     .map_err(|error| {
@@ -98,7 +114,10 @@ impl<S: Storage> LibraryService<S> {
                     achievements.extend(storage.achievements(game.id)?);
                 }
                 Outcome::AllItems(AllItems {
-                    players,
+                    players: players
+                        .into_iter()
+                        .map(|player| user.view_player(player))
+                        .collect(),
                     games,
                     genres,
                     game_genres,
@@ -108,7 +127,13 @@ impl<S: Storage> LibraryService<S> {
                 })
             }
             Operation::AddPlayer(player) => Outcome::Created(storage.add_player(player)?),
-            Operation::Players => Outcome::Players(storage.players()?),
+            Operation::Players => Outcome::Players(
+                storage
+                    .players()?
+                    .into_iter()
+                    .map(|player| user.view_player(player))
+                    .collect(),
+            ),
             Operation::AddGame(game) => Outcome::Created(storage.add_game(game)?),
             Operation::Games => Outcome::Games(storage.games()?),
             Operation::AddGenre(genre) => Outcome::Created(storage.add_genre(genre)?),
@@ -160,8 +185,21 @@ impl<S: Storage> LibraryService<S> {
 }
 
 impl<S: Storage> Service for LibraryService<S> {
+    fn sign_in(&mut self, username: &str, password: &str) -> Result<models::User, AppError> {
+        let user = authenticate(username, password)?;
+        self.current_user.sign_in(user.clone());
+        Ok(user.into())
+    }
+
+    fn sign_out(&mut self) {
+        self.current_user.sign_out();
+    }
+
     fn execute(&mut self, request: Request) -> Result<Response, AppError> {
-        Self::execute_operation(&mut self.storage, Operation::try_from(request)?).map(Into::into)
+        let user = self.current_user.user()?;
+        let operation = Operation::try_from(request)?;
+        user.authorize(&operation)?;
+        Self::execute_operation(&mut self.storage, &user, operation).map(Into::into)
     }
 }
 

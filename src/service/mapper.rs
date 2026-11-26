@@ -118,6 +118,65 @@ impl From<domain::Player> for models::Player {
     }
 }
 
+impl From<domain::PlayerListing> for models::PlayerListing {
+    fn from(value: domain::PlayerListing) -> Self {
+        Self {
+            id: value.id,
+            username: value.username,
+            email: match value.email {
+                domain::Email::Visible(email) => models::Email::Visible(email),
+                domain::Email::Hidden => models::Email::Hidden,
+            },
+        }
+    }
+}
+
+impl From<domain::Role> for models::Role {
+    fn from(role: domain::Role) -> Self {
+        match role {
+            domain::Role::Admin => Self::Admin,
+            domain::Role::Player { player_id } => Self::Player { player_id },
+        }
+    }
+}
+
+impl From<domain::Action> for models::Action {
+    fn from(action: domain::Action) -> Self {
+        match action {
+            domain::Action::AllItems => Self::AllItems,
+            domain::Action::AddPlayer => Self::AddPlayer,
+            domain::Action::Players => Self::Players,
+            domain::Action::AddGame => Self::AddGame,
+            domain::Action::AddGameToLibrary => Self::AddGameToLibrary,
+            domain::Action::Games => Self::Games,
+            domain::Action::AddGenre => Self::AddGenre,
+            domain::Action::Genres => Self::Genres,
+            domain::Action::TagGame => Self::TagGame,
+            domain::Action::AddToLibrary => Self::AddToLibrary,
+            domain::Action::Library => Self::Library,
+            domain::Action::SetProgress => Self::SetProgress,
+            domain::Action::AddAchievement => Self::AddAchievement,
+            domain::Action::Achievements => Self::Achievements,
+            domain::Action::Unlock => Self::Unlock,
+            domain::Action::Unlocked => Self::Unlocked,
+        }
+    }
+}
+
+impl From<domain::User> for models::User {
+    fn from(user: domain::User) -> Self {
+        Self {
+            actions: domain::Action::ALL
+                .into_iter()
+                .filter(|&action| user.may_use(action))
+                .map(Into::into)
+                .collect(),
+            username: user.username,
+            role: user.role.into(),
+        }
+    }
+}
+
 impl From<domain::Game> for models::Game {
     fn from(value: domain::Game) -> Self {
         Self {

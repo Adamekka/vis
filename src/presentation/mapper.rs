@@ -109,6 +109,54 @@ impl From<Status> for service::Status {
     }
 }
 
+impl From<service::PlayerListing> for models::Player {
+    fn from(value: service::PlayerListing) -> Self {
+        Self {
+            id: value.id,
+            username: value.username,
+            email: match value.email {
+                service::Email::Visible(email) => email,
+                service::Email::Hidden => "(hidden)".to_owned(),
+            },
+        }
+    }
+}
+
+impl From<service::User> for models::User {
+    fn from(value: service::User) -> Self {
+        Self {
+            username: value.username,
+            role: match value.role {
+                service::Role::Admin => "Admin".to_owned(),
+                service::Role::Player { player_id } => format!("Player {player_id}"),
+            },
+            // Names must match the clap subcommands; the GUI test checks the admin list covers them all.
+            actions: value
+                .actions
+                .into_iter()
+                .map(|action| match action {
+                    service::Action::AllItems => "all-items",
+                    service::Action::AddPlayer => "add-player",
+                    service::Action::Players => "players",
+                    service::Action::AddGame => "add-game",
+                    service::Action::AddGameToLibrary => "add-game-to-library",
+                    service::Action::Games => "games",
+                    service::Action::AddGenre => "add-genre",
+                    service::Action::Genres => "genres",
+                    service::Action::TagGame => "tag-game",
+                    service::Action::AddToLibrary => "add-to-library",
+                    service::Action::Library => "library",
+                    service::Action::SetProgress => "set-progress",
+                    service::Action::AddAchievement => "add-achievement",
+                    service::Action::Achievements => "achievements",
+                    service::Action::Unlock => "unlock",
+                    service::Action::Unlocked => "unlocked",
+                })
+                .collect(),
+        }
+    }
+}
+
 impl From<service::Player> for models::Player {
     fn from(value: service::Player) -> Self {
         Self {
